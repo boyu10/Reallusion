@@ -70,7 +70,7 @@
     }
 
     .container {
-      max-width: 1160px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 36px 28px 80px 28px;
     }
@@ -196,9 +196,106 @@
       color: var(--brand-primary);
     }
 
+    /* TC Overlap Color Groups */
+    .tc-code {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      letter-spacing: -0.02em;
+      transition: all 0.15s ease;
+    }
+
+    /* Group 1: Blue (SPD-001, SPD-003, MEM-003) */
+    .tc-grp-blue {
+      color: #1d4ed8 !important;
+      background-color: #eff6ff !important;
+      border-color: #bfdbfe !important;
+    }
+    [data-theme="dark"] .tc-grp-blue {
+      color: #93c5fd !important;
+      background-color: #1e3a8a40 !important;
+      border-color: #1d4ed8 !important;
+    }
+
+    /* Group 2: Purple (SPD-002, SPD-004, PT-N01) */
+    .tc-grp-purple {
+      color: #6d28d9 !important;
+      background-color: #f5f3ff !important;
+      border-color: #ddd6fe !important;
+    }
+    [data-theme="dark"] .tc-grp-purple {
+      color: #c4b5fd !important;
+      background-color: #4c1d9540 !important;
+      border-color: #6d28d9 !important;
+    }
+
+    /* Group 3: Amber (SPD-005, SPD-009, PT-Q03) */
+    .tc-grp-amber {
+      color: #b45309 !important;
+      background-color: #fffbeb !important;
+      border-color: #fde68a !important;
+    }
+    [data-theme="dark"] .tc-grp-amber {
+      color: #fcd34d !important;
+      background-color: #78350f40 !important;
+      border-color: #b45309 !important;
+    }
+
+    /* Group 4: Green (MEM-001, MEM-002, MEM-004) */
+    .tc-grp-green {
+      color: #047857 !important;
+      background-color: #ecfdf5 !important;
+      border-color: #a7f3d0 !important;
+    }
+    [data-theme="dark"] .tc-grp-green {
+      color: #6ee7b7 !important;
+      background-color: #064e3b40 !important;
+      border-color: #047857 !important;
+    }
+
+    /* Group 5: Rose (VP-001, VP-003) */
+    .tc-grp-rose {
+      color: #be185d !important;
+      background-color: #fff1f2 !important;
+      border-color: #fecdd3 !important;
+    }
+    [data-theme="dark"] .tc-grp-rose {
+      color: #f472b6 !important;
+      background-color: #83184340 !important;
+      border-color: #be185d !important;
+    }
+
+    /* Group 6: Cyan (MEM-005, LS-001) */
+    .tc-grp-cyan {
+      color: #0e7490 !important;
+      background-color: #ecfeff !important;
+      border-color: #a5f3fc !important;
+    }
+    [data-theme="dark"] .tc-grp-cyan {
+      color: #67e8f9 !important;
+      background-color: #164e6340 !important;
+      border-color: #0e7490 !important;
+    }
+
+    /* Group 7: Gray (Independent: PT-Q01, REG-001) */
+    .tc-grp-gray {
+      color: #475569 !important;
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+    }
+    [data-theme="dark"] .tc-grp-gray {
+      color: #cbd5e1 !important;
+      background-color: #33415540 !important;
+      border-color: #475569 !important;
+    }
+
     /* Concise Overlap Callout */
     .callout-rule {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       padding: 14px 18px;
       border-radius: var(--radius-md);
       background-color: var(--brand-light);
@@ -207,6 +304,40 @@
       color: var(--text-main);
       line-height: 1.6;
       box-shadow: var(--shadow-sm);
+    }
+
+    /* Group Color Legend */
+    .color-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
+      align-items: center;
+    }
+
+    .legend-title {
+      font-weight: 700;
+      color: var(--text-main);
+      margin-right: 4px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
     }
 
     /* Table Styles */
@@ -252,10 +383,13 @@
       background-color: var(--brand-light);
     }
 
-    .strikethrough {
-      text-decoration: line-through;
+    .strikethrough td:not(:first-child) {
       color: var(--text-muted);
-      opacity: 0.75;
+    }
+    
+    .strikethrough .strike-text {
+      text-decoration: line-through;
+      opacity: 0.8;
     }
 
     /* Badges */
@@ -342,7 +476,7 @@
         padding: 0 !important;
         max-width: 100% !important;
       }
-      .header-card, .callout-rule, .mermaid-card, .stat-card {
+      .header-card, .callout-rule, .color-legend, .mermaid-card, .stat-card {
         box-shadow: none !important;
         border: 1px solid #ddd !important;
         page-break-inside: avoid;
@@ -379,7 +513,7 @@
     </div>
   </div>
 
-  <!-- Header (No Spec Introduction) -->
+  <!-- Header -->
   <header class="header-card">
     <span class="header-badge">Reallusion QA • 工作流優化專項</span>
     <h1>⚡ RTX Render「效能測試」重複步驟優化與工作流整編報告</h1>
@@ -389,12 +523,24 @@
   <section id="section-a">
     <h2>Section A. 全表 14 案例重疊度對照矩陣 (Master Cross-Reference Table)</h2>
 
-    <!-- Single concise definition callout for the list below -->
+    <!-- Single concise definition callout -->
     <div class="callout-rule">
       💡 <strong>重疊率定義</strong>：下表各案例之「重疊率 %」主要以<strong>過程操作與算圖耗時的重複度（過程重疊）</strong>為核心依據，並結合<strong>數據結果可繼承性（結果重疊）</strong>進行評定。
     </div>
 
-    <!-- Master Table -->
+    <!-- Color Legend for Overlap Clusters -->
+    <div class="color-legend">
+      <span class="legend-title">🎨 重疊族群色彩對照：</span>
+      <span class="legend-item"><span class="legend-dot" style="background-color: #2563eb;"></span> 1080p 吞吐與防洩漏群組</span>
+      <span class="legend-item"><span class="legend-dot" style="background-color: #7c3aed;"></span> 4K 與 OIDN 降噪/光學矩陣</span>
+      <span class="legend-item"><span class="legend-dot" style="background-color: #d97706;"></span> 100 幀動畫/前段模糊/耐久</span>
+      <span class="legend-item"><span class="legend-dot" style="background-color: #059669;"></span> 記憶體全生命週期監控</span>
+      <span class="legend-item"><span class="legend-dot" style="background-color: #db2777;"></span> 視口互動與首幀延遲</span>
+      <span class="legend-item"><span class="legend-dot" style="background-color: #0891b2;"></span> 高負載 4K 極限壓力</span>
+      <span class="legend-item"><span class="legend-dot" style="background-color: #64748b;"></span> 獨立專項 (0% 無重疊)</span>
+    </div>
+
+    <!-- Master Table with Synchronized Colors -->
     <div class="table-container">
       <table>
         <thead>
@@ -409,164 +555,199 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Group 1: Blue (SPD-001, SPD-003, MEM-003) -->
           <tr>
-            <td><strong><code>TC-P-SPD-001</code></strong></td>
+            <td><span class="tc-code tc-grp-blue">TC-P-SPD-001</span></td>
             <td>1080p Reference 基準</td>
             <td>1080p 256S 速度/VRAM</td>
-            <td><code>SPD-003</code>, <code>MEM-003</code></td>
+            <td><span class="tc-code tc-grp-blue">SPD-003</span>, <span class="tc-code tc-grp-blue">MEM-003</span></td>
             <td><span class="tag tag-amber">70%</span></td>
             <td><strong>過程+結果重疊</strong><br>場景與設定與 <code>SPD-003</code> 的 256S 完全鏡像；輸出次數與 <code>MEM-003</code> 高度重疊。</td>
             <td><span class="tag tag-green">保留為主基準</span> 延伸穩態輸出至 10 次以涵蓋防洩漏。</td>
           </tr>
+
+          <!-- Group 2: Purple (SPD-002, SPD-004, PT-N01) -->
           <tr class="strikethrough">
-            <td><strong><code>TC-P-SPD-002</code></strong></td>
-            <td>4K 單幀輸出時間</td>
-            <td>4K 256S 穩態/VRAM</td>
-            <td><code>SPD-004</code></td>
+            <td><span class="tc-code tc-grp-purple">TC-P-SPD-002</span></td>
+            <td><span class="strike-text">4K 單幀輸出時間</span></td>
+            <td><span class="strike-text">4K 256S 穩態/VRAM</span></td>
+            <td><span class="tc-code tc-grp-purple">SPD-004</span></td>
             <td><span class="tag tag-red">80%</span></td>
             <td><strong>過程子集重疊</strong><br>「4K + 256S + OIDN ON」恰為 <code>SPD-004</code> 降噪矩陣中的其中一組。</td>
-            <td>建議劃刪除線，由 <code>SPD-004</code> 之 4K 組數據直接涵蓋。</td>
+            <td><span class="strike-text">建議劃刪除線</span>，由 <code>SPD-004</code> 之 4K 組數據直接涵蓋。</td>
           </tr>
+
+          <!-- Group 1: Blue -->
           <tr>
-            <td><strong><code>TC-P-SPD-003</code></strong></td>
+            <td><span class="tc-code tc-grp-blue">TC-P-SPD-003</span></td>
             <td>Sample 數影響階梯</td>
             <td>64/128/256/512 階梯</td>
-            <td><code>SPD-001</code></td>
+            <td><span class="tc-code tc-grp-blue">SPD-001</span></td>
             <td><span class="tag tag-blue">40%</span></td>
             <td><strong>過程局部鏡像</strong><br>其 256 Samples 那一組的算圖完全重複 <code>SPD-001</code>。</td>
             <td><span class="tag tag-green">保留</span> 256S 數據直接同步登錄回 <code>SPD-001</code>，省 1 組算圖。</td>
           </tr>
+
+          <!-- Group 2: Purple -->
           <tr>
-            <td><strong><code>TC-P-SPD-004</code></strong></td>
+            <td><span class="tc-code tc-grp-purple">TC-P-SPD-004</span></td>
             <td>OIDN 導引組合矩陣</td>
             <td>4種降噪通道×1080p/4K</td>
-            <td><code>SPD-002</code>, <code>PT-N01</code></td>
+            <td><span class="tc-code tc-grp-purple">SPD-002</span>, <span class="tc-code tc-grp-purple">PT-N01</span></td>
             <td><span class="tag tag-amber">50%</span></td>
             <td><strong>過程包容+矩陣同構</strong><br>包容 <code>SPD-002</code>；與 <code>PT-N01</code> 降噪開關組合完全同構。</td>
             <td><span class="tag tag-green">保留為主矩陣</span> 同時產出 4K 單幀基準，並與 <code>PT-N01</code> 連續施測。</td>
           </tr>
+
+          <!-- Group 3: Amber (SPD-005, SPD-009, PT-Q03) -->
           <tr>
-            <td><strong><code>TC-P-SPD-005</code></strong></td>
+            <td><span class="tc-code tc-grp-amber">TC-P-SPD-005</span></td>
             <td>100 幀動畫跨 GPU</td>
             <td>100幀動畫基準</td>
-            <td><code>SPD-009</code>, <code>PT-Q03</code></td>
+            <td><span class="tc-code tc-grp-amber">SPD-009</span>, <span class="tc-code tc-grp-amber">PT-Q03</span></td>
             <td><span class="tag tag-red">80%</span></td>
             <td><strong>過程 100% 重複</strong><br>與 <code>SPD-009</code> 算圖完全相同；亦為 <code>PT-Q03</code> 長跑的第一輪。</td>
             <td><span class="tag tag-green">保留為主動畫基準</span> 算圖時順便抽檢前段模糊，免分開跑兩次。</td>
           </tr>
+
+          <!-- Group 4: Green (MEM-001, MEM-002, MEM-004) -->
           <tr>
-            <td><strong><code>TC-P-MEM-001</code></strong></td>
+            <td><span class="tc-code tc-grp-green">TC-P-MEM-001</span></td>
             <td>VRAM 階段監控</td>
             <td>空白/載入/渲染 VRAM</td>
-            <td><code>MEM-002</code>, <code>MEM-004</code></td>
+            <td><span class="tc-code tc-grp-green">MEM-002</span>, <span class="tc-code tc-grp-green">MEM-004</span></td>
             <td><span class="tag tag-red">85%</span></td>
             <td><strong>流程 100% 重疊</strong><br>流程與 <code>MEM-002</code> 完全一樣（僅監控工具不同）；步驟 1 即為 <code>MEM-004</code>。</td>
             <td><span class="tag tag-green">保留為主記憶體案例</span> 合併 RAM 指標與空場景步驟。</td>
           </tr>
+
+          <!-- Group 4: Green -->
           <tr class="strikethrough">
-            <td><strong><code>TC-P-MEM-002</code></strong></td>
-            <td>RAM 用量監控</td>
-            <td>渲染前後系統 RAM</td>
-            <td><code>MEM-001</code></td>
+            <td><span class="tc-code tc-grp-green">TC-P-MEM-002</span></td>
+            <td><span class="strike-text">RAM 用量監控</span></td>
+            <td><span class="strike-text">渲染前後系統 RAM</span></td>
+            <td><span class="tc-code tc-grp-green">MEM-001</span></td>
             <td><span class="tag tag-red">90%</span></td>
             <td><strong>流程 100% 重疊</strong><br>僅是將 <code>MEM-001</code> 流程重做一次改看工作管理員。</td>
-            <td>建議劃刪除線，監控指標併入 <code>MEM-001</code> 一併記錄。</td>
+            <td><span class="strike-text">建議劃刪除線</span>，監控指標併入 <code>MEM-001</code> 一併記錄。</td>
           </tr>
+
+          <!-- Group 1: Blue -->
           <tr>
-            <td><strong><code>TC-P-MEM-003</code></strong></td>
+            <td><span class="tc-code tc-grp-blue">TC-P-MEM-003</span></td>
             <td>10 次連續防洩漏</td>
             <td>連續 10 次防洩漏</td>
-            <td><code>SPD-001</code></td>
+            <td><span class="tc-code tc-grp-blue">SPD-001</span></td>
             <td><span class="tag tag-amber">65%</span></td>
             <td><strong>過程高相似</strong><br>與 <code>SPD-001</code> 相同場景與解析度，僅為次數多寡差異。</td>
             <td>建議併入 <code>SPD-001</code>，跑分同時產出洩漏趨勢線，省一輪算圖。</td>
           </tr>
+
+          <!-- Group 4: Green -->
           <tr class="strikethrough">
-            <td><strong><code>TC-P-MEM-004</code></strong></td>
-            <td>空場景 VRAM 基準</td>
-            <td>純空場景基礎顯存</td>
-            <td><code>MEM-001</code></td>
+            <td><span class="tc-code tc-grp-green">TC-P-MEM-004</span></td>
+            <td><span class="strike-text">空場景 VRAM 基準</span></td>
+            <td><span class="strike-text">純空場景基礎顯存</span></td>
+            <td><span class="tc-code tc-grp-green">MEM-001</span></td>
             <td><span class="tag tag-red">95%</span></td>
             <td><strong>步驟重疊</strong><br>完全就是 <code>MEM-001</code> 的前置初始狀態。</td>
-            <td>建議劃刪除線，直接作為 <code>MEM-001</code> 的步驟 1 讀數。</td>
+            <td><span class="strike-text">建議劃刪除線</span>，直接作為 <code>MEM-001</code> 的步驟 1 讀數。</td>
           </tr>
+
+          <!-- Group 6: Cyan (MEM-005, LS-001) -->
           <tr>
-            <td><strong><code>TC-P-MEM-005</code></strong></td>
+            <td><span class="tc-code tc-grp-cyan">TC-P-MEM-005</span></td>
             <td>大型場景 4K 邊界</td>
             <td>3+角色+4K極限VRAM</td>
-            <td><code>LS-001</code></td>
+            <td><span class="tc-code tc-grp-cyan">LS-001</span></td>
             <td><span class="tag tag-amber">50%</span></td>
             <td><strong>資產高壓同構</strong><br>同為探索顯存崩潰極限之重載場景。</td>
             <td><span class="tag tag-green">保留</span> 作為高負載 4K 極限標準。</td>
           </tr>
+
+          <!-- Group 5: Rose (VP-001, VP-003) -->
           <tr>
-            <td><strong><code>TC-P-VP-001</code></strong></td>
+            <td><span class="tc-code tc-grp-rose">TC-P-VP-001</span></td>
             <td>Viewport 累積重置</td>
             <td>變動重置與收斂速度</td>
-            <td><code>VP-003</code></td>
+            <td><span class="tc-code tc-grp-rose">VP-003</span></td>
             <td><span class="tag tag-red">90%</span></td>
             <td><strong>操作流程包容</strong><br><code>VP-003</code> 測的指標完全就是 <code>VP-001</code> 的前半段動作。</td>
             <td><span class="tag tag-green">保留為主視口案例</span> 同時記錄首幀延遲與收斂速度。</td>
           </tr>
+
+          <!-- Group 5: Rose -->
           <tr class="strikethrough">
-            <td><strong><code>TC-P-VP-003</code></strong></td>
-            <td>編輯到首幀延遲</td>
-            <td>產生 Sample 1 耗時</td>
-            <td><code>VP-001</code></td>
+            <td><span class="tc-code tc-grp-rose">TC-P-VP-003</span></td>
+            <td><span class="strike-text">編輯到首幀延遲</span></td>
+            <td><span class="strike-text">產生 Sample 1 耗時</span></td>
+            <td><span class="tc-code tc-grp-rose">VP-001</span></td>
             <td><span class="tag tag-red">95%</span></td>
             <td><strong>動作重複</strong><br>要求 QA 重複執行與 <code>VP-001</code> 相同的一整套視口變動。</td>
-            <td>建議劃刪除線，併入 <code>VP-001</code> 一次完成。</td>
+            <td><span class="strike-text">建議劃刪除線</span>，併入 <code>VP-001</code> 一次完成。</td>
           </tr>
+
+          <!-- Group 6: Cyan -->
           <tr>
-            <td><strong><code>TC-P-LS-001</code></strong></td>
+            <td><span class="tc-code tc-grp-cyan">TC-P-LS-001</span></td>
             <td>10+ 角色群組渲染</td>
             <td>多角色負載防崩潰</td>
-            <td><code>MEM-005</code></td>
+            <td><span class="tc-code tc-grp-cyan">MEM-005</span></td>
             <td><span class="tag tag-blue">45%</span></td>
             <td><strong>資產高壓同構</strong><br>同為探索顯存崩潰極限之多角色負載。</td>
             <td><span class="tag tag-green">保留</span> 專注於多角色骨架與 Draw Call 壓力。</td>
           </tr>
+
+          <!-- Group 2: Purple -->
           <tr>
-            <td><strong><code>PT-N01</code></strong></td>
+            <td><span class="tc-code tc-grp-purple">PT-N01</span></td>
             <td>景深 × OIDN 矩陣</td>
             <td>DOF 與降噪邊緣品質</td>
-            <td><code>SPD-004</code></td>
+            <td><span class="tc-code tc-grp-purple">SPD-004</span></td>
             <td><span class="tag tag-amber">60%</span></td>
             <td><strong>矩陣開關同構</strong><br>跑完全一樣的 4 組 OIDN 開關，僅增加 DOF 條件。</td>
             <td><span class="tag tag-green">保留為專項光學驗證</span> 視為 <code>SPD-004</code> 之光學特化組。</td>
           </tr>
+
+          <!-- Group 7: Gray (Independent) -->
           <tr>
-            <td><strong><code>PT-Q01</code></strong></td>
+            <td><span class="tc-code tc-grp-gray">PT-Q01</span></td>
             <td>大量光源收斂階梯</td>
             <td>1~50 盞燈光收斂</td>
-            <td>無直接重疊</td>
+            <td><span class="tc-code tc-grp-gray">無直接重疊</span></td>
             <td><span class="tag tag-blue">0%</span></td>
             <td><strong>無重疊</strong><br>獨立之多光源收斂與光學壓力驗證。</td>
             <td><span class="tag tag-green">完全保留</span> 無重複之獨立專項。</td>
           </tr>
+
+          <!-- Group 3: Amber -->
           <tr>
-            <td><strong><code>PT-Q03</code></strong></td>
+            <td><span class="tc-code tc-grp-amber">PT-Q03</span></td>
             <td>8 小時長時間耐久</td>
             <td>8 小時連續算圖</td>
-            <td><code>SPD-005</code></td>
+            <td><span class="tc-code tc-grp-amber">SPD-005</span></td>
             <td><span class="tag tag-blue">40%</span></td>
             <td><strong>長跑第一輪結果互通</strong><br>第 1 輪產出之數據本質即為 <code>SPD-005</code> 基準。</td>
             <td><span class="tag tag-green">完全保留</span> 其第一輪數據直接同步至 <code>SPD-005</code>。</td>
           </tr>
+
+          <!-- Group 3: Amber -->
           <tr class="strikethrough">
-            <td><strong><code>TC-P-SPD-009</code></strong></td>
-            <td>動畫前段清晰度</td>
-            <td>檢查 Frame 1~10 模糊</td>
-            <td><code>SPD-005</code></td>
+            <td><span class="tc-code tc-grp-amber">TC-P-SPD-009</span></td>
+            <td><span class="strike-text">動畫前段清晰度</span></td>
+            <td><span class="strike-text">檢查 Frame 1~10 模糊</span></td>
+            <td><span class="tc-code tc-grp-amber">SPD-005</span></td>
             <td><span class="tag tag-red">90%</span></td>
             <td><strong>算圖 100% 重複</strong><br>再跑一次 100 幀純為比對影格清晰度。</td>
-            <td>建議劃刪除線，改為 <code>SPD-005</code> 輸出時之驗收抽檢項。</td>
+            <td><span class="strike-text">建議劃刪除線</span>，改為 <code>SPD-005</code> 輸出時之驗收抽檢項。</td>
           </tr>
+
+          <!-- Group 7: Gray (Independent) -->
           <tr>
-            <td><strong><code>TC-P-REG-001</code></strong></td>
+            <td><span class="tc-code tc-grp-gray">TC-P-REG-001</span></td>
             <td>載入後不收斂回歸</td>
             <td>專案載入自動收斂</td>
-            <td>無直接重疊</td>
+            <td><span class="tc-code tc-grp-gray">無直接重疊</span></td>
             <td><span class="tag tag-blue">0%</span></td>
             <td><strong>無重疊</strong><br>針對特定 Defect 建立之回歸防禦。</td>
             <td><span class="tag tag-green">完全保留</span> 重要之 Defect 防禦案例。</td>
