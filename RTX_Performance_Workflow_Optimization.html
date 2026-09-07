@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RTX Render 效能測試：重複步驟優化與工作流整編報告</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-card-alt: #f1f5f9;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --brand-primary: #2563eb;
+      --brand-hover: #1d4ed8;
+      --brand-light: #eff6ff;
+      --accent-red: #ef4444;
+      --accent-red-bg: #fef2f2;
+      --accent-amber: #f59e0b;
+      --accent-amber-bg: #fffbeb;
+      --accent-green: #10b981;
+      --accent-green-bg: #ecfdf5;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.08);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0b0f19;
+      --bg-card: #111827;
+      --bg-card-alt: #1f2937;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border-color: #374151;
+      --brand-primary: #3b82f6;
+      --brand-hover: #60a5fa;
+      --brand-light: #1e293b;
+      --accent-red: #f87171;
+      --accent-red-bg: #451a1a;
+      --accent-amber: #fbbf24;
+      --accent-amber-bg: #452b0a;
+      --accent-green: #34d399;
+      --accent-green-bg: #064e3b;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.7;
+      font-size: 15px;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .container {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 36px 28px 80px 28px;
+    }
+
+    /* Action bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .quick-nav {
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .quick-nav a {
+      color: var(--brand-primary);
+      text-decoration: none;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      background: var(--brand-light);
+      transition: all 0.2s;
+    }
+
+    .quick-nav a:hover {
+      background: var(--brand-primary);
+      color: #fff;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: var(--bg-card-alt);
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+    }
+
+    /* Header */
+    .header-card {
+      background: linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(59,130,246,0.02) 100%), var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 5px solid var(--brand-primary);
+      border-radius: var(--radius-lg);
+      padding: 26px 30px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .header-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      background-color: var(--brand-light);
+      color: var(--brand-primary);
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 9999px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+    }
+
+    /* Section Headings */
+    h2 {
+      font-size: 19px;
+      font-weight: 700;
+      margin: 36px 0 16px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-main);
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
+      color: var(--text-main);
+    }
+
+    p {
+      margin-bottom: 14px;
+      color: var(--text-main);
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88em;
+      background-color: var(--bg-card-alt);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      color: var(--brand-primary);
+    }
+
+    /* Concise Overlap Callout */
+    .callout-rule {
+      margin-bottom: 20px;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      background-color: var(--brand-light);
+      border-left: 4px solid var(--brand-primary);
+      font-size: 14px;
+      color: var(--text-main);
+      line-height: 1.6;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Table Styles */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin: 16px 0 32px 0;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+      background-color: var(--bg-card);
+    }
+
+    th {
+      background-color: var(--bg-card-alt);
+      color: var(--text-main);
+      font-weight: 600;
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+      vertical-align: middle;
+      line-height: 1.5;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: var(--brand-light);
+    }
+
+    .strikethrough {
+      text-decoration: line-through;
+      color: var(--text-muted);
+      opacity: 0.75;
+    }
+
+    /* Badges */
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .tag-red {
+      background-color: var(--accent-red-bg);
+      color: var(--accent-red);
+    }
+
+    .tag-amber {
+      background-color: var(--accent-amber-bg);
+      color: var(--accent-amber);
+    }
+
+    .tag-green {
+      background-color: var(--accent-green-bg);
+      color: var(--accent-green);
+    }
+
+    .tag-blue {
+      background-color: var(--brand-light);
+      color: var(--brand-primary);
+    }
+
+    /* Mermaid */
+    .mermaid-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      margin: 20px 0;
+      box-shadow: var(--shadow-md);
+      text-align: center;
+      overflow-x: auto;
+    }
+
+    /* Stat Cards */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .stat-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--brand-primary);
+      margin-bottom: 4px;
+    }
+
+    .stat-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Print Optimization */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 10.5pt;
+      }
+      .top-bar {
+        display: none !important;
+      }
+      .container {
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+      .header-card, .callout-rule, .mermaid-card, .stat-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+      }
+      table th {
+        background-color: #f3f3f3 !important;
+        color: #000 !important;
+      }
+      tr {
+        page-break-inside: avoid;
+      }
+      h2 {
+        page-break-after: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Action Bar -->
+  <div class="top-bar">
+    <div class="quick-nav">
+      <a href="#section-a">Section A: 14 案例重疊矩陣</a>
+      <a href="#section-b">Section B: 7 大黃金工作流</a>
+    </div>
+    <div class="action-group">
+      <button class="btn" onclick="toggleTheme()" title="切換淺色/深色風格">
+        <span id="theme-icon">🌙</span> 深色模式
+      </button>
+      <button class="btn" onclick="window.print()" title="另存為 PDF 或列印">
+        🖨️ 列印 / 匯出 PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Header (No Spec Introduction) -->
+  <header class="header-card">
+    <span class="header-badge">Reallusion QA • 工作流優化專項</span>
+    <h1>⚡ RTX Render「效能測試」重複步驟優化與工作流整編報告</h1>
+  </header>
+
+  <!-- Section A -->
+  <section id="section-a">
+    <h2>Section A. 全表 14 案例重疊度對照矩陣 (Master Cross-Reference Table)</h2>
+
+    <!-- Single concise definition callout for the list below -->
+    <div class="callout-rule">
+      💡 <strong>重疊率定義</strong>：下表各案例之「重疊率 %」主要以<strong>過程操作與算圖耗時的重複度（過程重疊）</strong>為核心依據，並結合<strong>數據結果可繼承性（結果重疊）</strong>進行評定。
+    </div>
+
+    <!-- Master Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>TC ID</th>
+            <th>測試項目名稱</th>
+            <th>主要測試標的</th>
+            <th>重疊/相似之對應項目</th>
+            <th>重疊率</th>
+            <th>重疊類型與剖析</th>
+            <th>處置建議 (符合刪除線原則)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong><code>TC-P-SPD-001</code></strong></td>
+            <td>1080p Reference 基準</td>
+            <td>1080p 256S 速度/VRAM</td>
+            <td><code>SPD-003</code>, <code>MEM-003</code></td>
+            <td><span class="tag tag-amber">70%</span></td>
+            <td><strong>過程+結果重疊</strong><br>場景與設定與 <code>SPD-003</code> 的 256S 完全鏡像；輸出次數與 <code>MEM-003</code> 高度重疊。</td>
+            <td><span class="tag tag-green">保留為主基準</span> 延伸穩態輸出至 10 次以涵蓋防洩漏。</td>
+          </tr>
+          <tr class="strikethrough">
+            <td><strong><code>TC-P-SPD-002</code></strong></td>
+            <td>4K 單幀輸出時間</td>
+            <td>4K 256S 穩態/VRAM</td>
+            <td><code>SPD-004</code></td>
+            <td><span class="tag tag-red">80%</span></td>
+            <td><strong>過程子集重疊</strong><br>「4K + 256S + OIDN ON」恰為 <code>SPD-004</code> 降噪矩陣中的其中一組。</td>
+            <td>建議劃刪除線，由 <code>SPD-004</code> 之 4K 組數據直接涵蓋。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-SPD-003</code></strong></td>
+            <td>Sample 數影響階梯</td>
+            <td>64/128/256/512 階梯</td>
+            <td><code>SPD-001</code></td>
+            <td><span class="tag tag-blue">40%</span></td>
+            <td><strong>過程局部鏡像</strong><br>其 256 Samples 那一組的算圖完全重複 <code>SPD-001</code>。</td>
+            <td><span class="tag tag-green">保留</span> 256S 數據直接同步登錄回 <code>SPD-001</code>，省 1 組算圖。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-SPD-004</code></strong></td>
+            <td>OIDN 導引組合矩陣</td>
+            <td>4種降噪通道×1080p/4K</td>
+            <td><code>SPD-002</code>, <code>PT-N01</code></td>
+            <td><span class="tag tag-amber">50%</span></td>
+            <td><strong>過程包容+矩陣同構</strong><br>包容 <code>SPD-002</code>；與 <code>PT-N01</code> 降噪開關組合完全同構。</td>
+            <td><span class="tag tag-green">保留為主矩陣</span> 同時產出 4K 單幀基準，並與 <code>PT-N01</code> 連續施測。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-SPD-005</code></strong></td>
+            <td>100 幀動畫跨 GPU</td>
+            <td>100幀動畫基準</td>
+            <td><code>SPD-009</code>, <code>PT-Q03</code></td>
+            <td><span class="tag tag-red">80%</span></td>
+            <td><strong>過程 100% 重複</strong><br>與 <code>SPD-009</code> 算圖完全相同；亦為 <code>PT-Q03</code> 長跑的第一輪。</td>
+            <td><span class="tag tag-green">保留為主動畫基準</span> 算圖時順便抽檢前段模糊，免分開跑兩次。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-MEM-001</code></strong></td>
+            <td>VRAM 階段監控</td>
+            <td>空白/載入/渲染 VRAM</td>
+            <td><code>MEM-002</code>, <code>MEM-004</code></td>
+            <td><span class="tag tag-red">85%</span></td>
+            <td><strong>流程 100% 重疊</strong><br>流程與 <code>MEM-002</code> 完全一樣（僅監控工具不同）；步驟 1 即為 <code>MEM-004</code>。</td>
+            <td><span class="tag tag-green">保留為主記憶體案例</span> 合併 RAM 指標與空場景步驟。</td>
+          </tr>
+          <tr class="strikethrough">
+            <td><strong><code>TC-P-MEM-002</code></strong></td>
+            <td>RAM 用量監控</td>
+            <td>渲染前後系統 RAM</td>
+            <td><code>MEM-001</code></td>
+            <td><span class="tag tag-red">90%</span></td>
+            <td><strong>流程 100% 重疊</strong><br>僅是將 <code>MEM-001</code> 流程重做一次改看工作管理員。</td>
+            <td>建議劃刪除線，監控指標併入 <code>MEM-001</code> 一併記錄。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-MEM-003</code></strong></td>
+            <td>10 次連續防洩漏</td>
+            <td>連續 10 次防洩漏</td>
+            <td><code>SPD-001</code></td>
+            <td><span class="tag tag-amber">65%</span></td>
+            <td><strong>過程高相似</strong><br>與 <code>SPD-001</code> 相同場景與解析度，僅為次數多寡差異。</td>
+            <td>建議併入 <code>SPD-001</code>，跑分同時產出洩漏趨勢線，省一輪算圖。</td>
+          </tr>
+          <tr class="strikethrough">
+            <td><strong><code>TC-P-MEM-004</code></strong></td>
+            <td>空場景 VRAM 基準</td>
+            <td>純空場景基礎顯存</td>
+            <td><code>MEM-001</code></td>
+            <td><span class="tag tag-red">95%</span></td>
+            <td><strong>步驟重疊</strong><br>完全就是 <code>MEM-001</code> 的前置初始狀態。</td>
+            <td>建議劃刪除線，直接作為 <code>MEM-001</code> 的步驟 1 讀數。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-MEM-005</code></strong></td>
+            <td>大型場景 4K 邊界</td>
+            <td>3+角色+4K極限VRAM</td>
+            <td><code>LS-001</code></td>
+            <td><span class="tag tag-amber">50%</span></td>
+            <td><strong>資產高壓同構</strong><br>同為探索顯存崩潰極限之重載場景。</td>
+            <td><span class="tag tag-green">保留</span> 作為高負載 4K 極限標準。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-VP-001</code></strong></td>
+            <td>Viewport 累積重置</td>
+            <td>變動重置與收斂速度</td>
+            <td><code>VP-003</code></td>
+            <td><span class="tag tag-red">90%</span></td>
+            <td><strong>操作流程包容</strong><br><code>VP-003</code> 測的指標完全就是 <code>VP-001</code> 的前半段動作。</td>
+            <td><span class="tag tag-green">保留為主視口案例</span> 同時記錄首幀延遲與收斂速度。</td>
+          </tr>
+          <tr class="strikethrough">
+            <td><strong><code>TC-P-VP-003</code></strong></td>
+            <td>編輯到首幀延遲</td>
+            <td>產生 Sample 1 耗時</td>
+            <td><code>VP-001</code></td>
+            <td><span class="tag tag-red">95%</span></td>
+            <td><strong>動作重複</strong><br>要求 QA 重複執行與 <code>VP-001</code> 相同的一整套視口變動。</td>
+            <td>建議劃刪除線，併入 <code>VP-001</code> 一次完成。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-LS-001</code></strong></td>
+            <td>10+ 角色群組渲染</td>
+            <td>多角色負載防崩潰</td>
+            <td><code>MEM-005</code></td>
+            <td><span class="tag tag-blue">45%</span></td>
+            <td><strong>資產高壓同構</strong><br>同為探索顯存崩潰極限之多角色負載。</td>
+            <td><span class="tag tag-green">保留</span> 專注於多角色骨架與 Draw Call 壓力。</td>
+          </tr>
+          <tr>
+            <td><strong><code>PT-N01</code></strong></td>
+            <td>景深 × OIDN 矩陣</td>
+            <td>DOF 與降噪邊緣品質</td>
+            <td><code>SPD-004</code></td>
+            <td><span class="tag tag-amber">60%</span></td>
+            <td><strong>矩陣開關同構</strong><br>跑完全一樣的 4 組 OIDN 開關，僅增加 DOF 條件。</td>
+            <td><span class="tag tag-green">保留為專項光學驗證</span> 視為 <code>SPD-004</code> 之光學特化組。</td>
+          </tr>
+          <tr>
+            <td><strong><code>PT-Q01</code></strong></td>
+            <td>大量光源收斂階梯</td>
+            <td>1~50 盞燈光收斂</td>
+            <td>無直接重疊</td>
+            <td><span class="tag tag-blue">0%</span></td>
+            <td><strong>無重疊</strong><br>獨立之多光源收斂與光學壓力驗證。</td>
+            <td><span class="tag tag-green">完全保留</span> 無重複之獨立專項。</td>
+          </tr>
+          <tr>
+            <td><strong><code>PT-Q03</code></strong></td>
+            <td>8 小時長時間耐久</td>
+            <td>8 小時連續算圖</td>
+            <td><code>SPD-005</code></td>
+            <td><span class="tag tag-blue">40%</span></td>
+            <td><strong>長跑第一輪結果互通</strong><br>第 1 輪產出之數據本質即為 <code>SPD-005</code> 基準。</td>
+            <td><span class="tag tag-green">完全保留</span> 其第一輪數據直接同步至 <code>SPD-005</code>。</td>
+          </tr>
+          <tr class="strikethrough">
+            <td><strong><code>TC-P-SPD-009</code></strong></td>
+            <td>動畫前段清晰度</td>
+            <td>檢查 Frame 1~10 模糊</td>
+            <td><code>SPD-005</code></td>
+            <td><span class="tag tag-red">90%</span></td>
+            <td><strong>算圖 100% 重複</strong><br>再跑一次 100 幀純為比對影格清晰度。</td>
+            <td>建議劃刪除線，改為 <code>SPD-005</code> 輸出時之驗收抽檢項。</td>
+          </tr>
+          <tr>
+            <td><strong><code>TC-P-REG-001</code></strong></td>
+            <td>載入後不收斂回歸</td>
+            <td>專案載入自動收斂</td>
+            <td>無直接重疊</td>
+            <td><span class="tag tag-blue">0%</span></td>
+            <td><strong>無重疊</strong><br>針對特定 Defect 建立之回歸防禦。</td>
+            <td><span class="tag tag-green">完全保留</span> 重要之 Defect 防禦案例。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section B -->
+  <section id="section-b">
+    <h2>Section B. 精簡整編方案：7 大黃金測試工作流 (Golden Workflows)</h2>
+    <p>依據「多餘案例標註刪除線，不清空、不刪除」規範，執行流程整編成 <strong>7 大黃金工作流</strong>：</p>
+
+    <div class="mermaid-card">
+      <div class="mermaid">
+graph TD
+    A[效能測試 7 大黃金工作流] --> B[Workflow 1: 單幀吞吐與顯存洩漏複合測試<br>SPD-001 + MEM-003]
+    A --> C[Workflow 2: 降噪導引與 4K 基準矩陣<br>SPD-004 + SPD-002]
+    A --> D[Workflow 3: Sample 階梯收斂評估<br>SPD-003]
+    A --> E[Workflow 4: 記憶體與全生命週期剖析<br>MEM-001 + MEM-002 + MEM-004]
+    A --> F[Workflow 5: 視口互動與重置延遲矩陣<br>VP-001 + VP-003]
+    A --> G[Workflow 6: 100 幀動畫基準與前段模糊驗證<br>SPD-005 + SPD-009 + PT-Q03 第1輪]
+    A --> H[Workflow 7: 極限高壓與專項回歸<br>MEM-005, LS-001, PT-N01, PT-Q01, PT-Q03, REG-001]
+      </div>
+    </div>
+
+    <!-- Benefits Grid -->
+    <h3 style="margin-top: 30px;">總體效益評估：</h3>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-number">14 ➔ 7</div>
+        <div class="stat-desc">測試案例數量濃縮為 7 個高效單元，降低 QA 手工操作與重複設定。</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">~ 45% - 50%</div>
+        <div class="stat-desc">減少算圖機台佔用時間，免除重複跑 100 幀動畫與 4K 256S 算圖。</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">100% 覆蓋</div>
+        <div class="stat-desc">完整覆蓋 RTX 50 系顯存溢出、動畫前段模糊、DOF 邊緣鋸齒等所有已知缺陷。</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  // Mermaid init
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis'
+    }
+  });
+
+  // Dark/Light Mode Switcher
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const nextTheme = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', nextTheme);
+    document.getElementById('theme-icon').textContent = nextTheme === 'dark' ? '☀️' : '🌙';
+  }
+</script>
+
+</body>
+</html>
