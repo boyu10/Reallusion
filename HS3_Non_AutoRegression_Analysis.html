@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Headshot 3.0 自動回歸決策調研報告 (Project 521 專用)</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            corporate: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              700: '#334155',
+              800: '#1e293b',
+              850: '#172033',
+              900: '#0f172a',
+              950: '#0b1120',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b1120;
+      color: #e2e8f0;
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    }
+    .panel-card {
+      background-color: #131c2e;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .panel-card:hover {
+      border-color: rgba(148, 163, 184, 0.2);
+    }
+    .badge-unsuitable {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+    .badge-api {
+      background: rgba(217, 119, 6, 0.12);
+      color: #fcd34d;
+      border: 1px solid rgba(217, 119, 6, 0.25);
+    }
+    .badge-roi {
+      background: rgba(59, 130, 246, 0.12);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    .tab-btn {
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      background: #334155;
+      color: #f8fafc;
+      border-color: #475569;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+
+  <!-- Top Executive Header -->
+  <header class="border-b border-slate-800/80 bg-[#0f172a]/95 sticky top-0 z-50 px-6 py-3.5 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-semibold text-xs text-slate-300">
+          QA
+        </div>
+        <div>
+          <h1 class="text-sm font-semibold text-slate-100 tracking-wide">Headshot 3.0 自動回歸決策調研報告</h1>
+          <p class="text-[11px] text-slate-400">口徑限定：Mantis Project 521 (Headshot v3.0 進 QA) 專案目錄</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <span class="px-2.5 py-1 rounded bg-slate-800/80 text-slate-300 border border-slate-700/60 font-mono">100% 嚴格限定 Project 521</span>
+        <span class="px-2.5 py-1 rounded bg-slate-800/80 text-slate-400 border border-slate-700/60">對照 RLPy2 規格書</span>
+        <a href="#matrix" class="px-2.5 py-1 rounded bg-slate-700 text-slate-200 hover:bg-slate-600 transition font-medium">速查總表</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Executive Summary Banner -->
+  <section class="max-w-7xl mx-auto px-6 pt-10 pb-6">
+    <div class="border-b border-slate-800/80 pb-8 mb-8">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700 mb-3">
+          主管三問專題剖析
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight mb-3">
+          「這個 Case 沒做，是時間不夠、API 沒開、還是根本不適合自動化？」
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+          針對 Project 521 內部共 26 筆缺陷中，<strong>未獲選排入前十名自動回歸</strong>的代表性項目進行深入技術複盤。
+          對照官方最新 <strong>RLPy2 RD 規格書</strong>，闡明各 Case 背後的 3D 幾何斷言限制、C++ 接口缺失與工程投資回報率（ROI）取捨。
+        </p>
+      </div>
+    </div>
+
+    <!-- 3 Metrics Cards (Subdued, Clean Corporate Palette) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+      
+      <!-- Metric 1 -->
+      <div class="panel-card rounded-xl p-5 border border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">維度一</span>
+          <span class="text-xl font-bold text-slate-200">3 案例</span>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-100 mb-1 flex items-center gap-1.5">
+          <span class="text-red-400">●</span> 根本不適合自動化
+        </h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          幾何破面、膚色人體美學、畫面著色器可見性。程式無例外崩潰，純屬人眼審美與主觀感受，自動化斷言極易產生大量誤報。
+        </p>
+      </div>
+
+      <!-- Metric 2 -->
+      <div class="panel-card rounded-xl p-5 border border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">維度二</span>
+          <span class="text-xl font-bold text-slate-200">4 案例</span>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-100 mb-1 flex items-center gap-1.5">
+          <span class="text-amber-400">●</span> API 沒開 / 系統架構限制
+        </h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          查證 RLPy2 規格書確無接口。包括 3D Viewport 畫布滑鼠拖曳、3D Brush 封閉模組、渲染品質切換與進程銷毀崩潰。
+        </p>
+      </div>
+
+      <!-- Metric 3 -->
+      <div class="panel-card rounded-xl p-5 border border-slate-800">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">維度三</span>
+          <span class="text-xl font-bold text-slate-200">3 案例</span>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-100 mb-1 flex items-center gap-1.5">
+          <span class="text-blue-400">●</span> 時間不夠 / ROI 不符
+        </h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          雲端 AI 伺服器非同步偶發 Race Condition、極度冗長的邊界分頁切換。衝刺期建置 Mock 成本巨大，手動點測 5 秒更具效益。
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Decision Framework Flow (Subdued Technical Blueprint) -->
+  <section class="max-w-7xl mx-auto px-6 py-6">
+    <div class="panel-card rounded-xl p-6 border border-slate-800">
+      <div class="mb-4">
+        <h3 class="text-sm font-semibold text-slate-200">主管決策心智模型：三問判斷流程</h3>
+        <p class="text-xs text-slate-400 mt-0.5">遇到新的缺陷或測試案例，依序走訪以下 3 道門檻快速定錨處置方針：</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <div class="bg-slate-900/80 p-3.5 rounded-lg border border-slate-800/80">
+          <div class="font-mono text-slate-400 text-[11px] mb-1">Step 1. 結果斷言性</div>
+          <div class="text-slate-200 font-medium mb-2">能否用代數/雜湊/布林精準斷言？</div>
+          <div class="text-[11px] text-red-300 bg-red-950/30 p-2 rounded border border-red-900/30">
+            <strong>否</strong> ➔ 根本不適合自動化 (人工點測)
+          </div>
+        </div>
+
+        <div class="bg-slate-900/80 p-3.5 rounded-lg border border-slate-800/80">
+          <div class="font-mono text-slate-400 text-[11px] mb-1">Step 2. 規格書現成度</div>
+          <div class="text-slate-200 font-medium mb-2">現有 RLPy2 規格書是否暴露 Hook？</div>
+          <div class="text-[11px] text-amber-300 bg-amber-950/30 p-2 rounded border border-amber-900/30">
+            <strong>否</strong> ➔ API 沒開 / 架構限制 (向RD提案)
+          </div>
+        </div>
+
+        <div class="bg-slate-900/80 p-3.5 rounded-lg border border-slate-800/80">
+          <div class="font-mono text-slate-400 text-[11px] mb-1">Step 3. 生命週期 ROI</div>
+          <div class="text-slate-200 font-medium mb-2">腳本開發維護成本 &lt; 手動總和？</div>
+          <div class="text-[11px] text-blue-300 bg-blue-950/30 p-2 rounded border border-blue-900/30">
+            <strong>否</strong> ➔ 時間不夠 / ROI 不符 (單元測試)
+          </div>
+        </div>
+
+        <div class="bg-slate-800/40 p-3.5 rounded-lg border border-emerald-900/40 flex flex-col justify-between">
+          <div>
+            <div class="font-mono text-emerald-400 text-[11px] mb-1">Outcome. 決策落地</div>
+            <div class="text-slate-200 font-medium mb-2">三道門檻皆通過</div>
+          </div>
+          <div class="text-[11px] text-emerald-300 bg-emerald-950/50 p-2 rounded border border-emerald-700/50 text-center font-semibold">
+            納入 Auto Regression (黃金案例)
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filterable Case Studies (Project 521 Exclusive) -->
+  <section class="max-w-7xl mx-auto px-6 py-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div>
+        <h3 class="text-base font-semibold text-slate-100">Project 521 精選 10 筆非自動回歸案例調研</h3>
+        <p class="text-xs text-slate-400 mt-0.5">點擊分類按鈕篩選特定歸因維度的案例卡片</p>
+      </div>
+
+      <!-- Segmented Control Button Filter -->
+      <div class="inline-flex p-1 rounded-lg bg-slate-900 border border-slate-800 text-xs">
+        <button class="tab-btn px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-slate-200 active" onclick="filterCases('all', this)">全部 (10)</button>
+        <button class="tab-btn px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-slate-200" onclick="filterCases('unsuitable', this)">根本不適合 (3)</button>
+        <button class="tab-btn px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-slate-200" onclick="filterCases('api', this)">API 沒開 (4)</button>
+        <button class="tab-btn px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-slate-200" onclick="filterCases('roi', this)">時間/ROI (3)</button>
+      </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div id="cases-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <!-- Case 1: #97447 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="unsuitable">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 幾何拓撲</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97447" target="_blank" class="text-indigo-400 hover:underline">#97447</a>: [急診室 94] HS3 做的角色下嘴唇內部爛掉
+            </h4>
+          </div>
+          <span class="badge-unsuitable px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">根本不適合</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>生成角色後進入 Edit Facial 將 Jaw Open 調至最大值，下嘴唇內部出現網格撕裂爛掉（視覺破面）。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">技術阻礙剖析：</span>
+            <span class="text-slate-300">DirectX 渲染緩衝區接收均為合法座標，程式無例外。本質是拓撲平滑度與貼圖 UV 權重不足。圖像比對受抗鋸齒與光影干擾，誤報率極高。人工旋轉視圖 3 秒即可秒辨，寫法線偵測維護代價過大。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 2: #96881 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="unsuitable">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 膚色材質</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96881" target="_blank" class="text-indigo-400 hover:underline">#96881</a>: 重複做 HS3 角色，角色頭和身體會膚色不一樣
+            </h4>
+          </div>
+          <span class="badge-unsuitable px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">根本不適合</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>在同一 Session 連續生成 HS3 角色，新角色的頭部與身體產生色差。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">技術阻礙剖析：</span>
+            <span class="text-slate-300">頭身膚色的自然銜接度涉及人眼主觀審美判定。不同環境光照、PBR 著色器反射與貼圖色溫均會造成微幅數值漂移，以 RGB 絕對閥值斷言极易引發假警報。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 3: #97978 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="unsuitable">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 視圖渲染</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97978" target="_blank" class="text-indigo-400 hover:underline">#97978</a>: Refine Face 存出再載入，Preview 出現 Front 且看不到 Mesh
+            </h4>
+          </div>
+          <span class="badge-unsuitable px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">根本不適合</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>Refine Face 先 Side 再 Front 存出角色後重新載入，開 Side 面板時 Preview 出現 Front 圖且看不到 Mesh。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">技術阻礙剖析：</span>
+            <span class="text-slate-300">此為 3D 視圖著色器可見性（Visibility Shader）層級的視覺錯置，未發生底層崩潰。以自動化腳本驗證「模型是否能被肉眼看見」難以編寫客觀代數斷言，手動驗收最快。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 4: #96538 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="api">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 3D 畫布操作</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96538" target="_blank" class="text-indigo-400 hover:underline">#96538</a>: Sculpt Morph 從 Viewport 左鍵 Drag, Morph 不會改變
+            </h4>
+          </div>
+          <span class="badge-api px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">API 沒開</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>開啟 Sculpt Morph 後，在 Viewport 3D 視圖中用滑鼠左鍵按住臉部頂點拖曳調整，Morph 完全無反應。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">RLPy2 規格書查證：</span>
+            <span class="text-slate-300">規格書中完全沒有 Viewport.InjectMouseDrag() 或空間射線頂點拾取接口！滑鼠拖曳涉及螢幕至世界座標射線轉換（Unproject Ray）與筆刷衰減，Python API 層面根本觸碰不到。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 5: #96928 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="api">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 筆刷模組</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96928" target="_blank" class="text-indigo-400 hover:underline">#96928</a>: Mesh Mode 生成的角色，開 3D Brush CC 會 crash
+            </h4>
+          </div>
+          <span class="badge-api px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">API 沒開</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>由 Mesh Mode 生成的角色，在後續流程嘗試開啟 3D Brush 工具時，Character Creator 發生崩潰。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">RLPy2 規格書查證：</span>
+            <span class="text-slate-300">3D Brush 在 RLPy2 規格書中並未暴露任何筆刷圖層與點位注入接口（屬於內部封閉工具）。腳本無法在 API 層級操作 3D Brush 筆刷狀態。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 6: #97663 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="api">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 渲染管線</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97663" target="_blank" class="text-indigo-400 hover:underline">#97663</a>: 開啟 Mask Brush Tool 後, Quality 切換 High 到 Medium 會 Crash
+            </h4>
+          </div>
+          <span class="badge-api px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">API 沒開</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>進入 Mask Brush Tool 繪製期間，點擊工具列將 Viewport Quality 從 High 切換為 Medium，CC 發生當機。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">技術阻礙剖析：</span>
+            <span class="text-slate-300">涉及 Viewport Shader 即時重新編譯與 Mask 紋理記憶體交換。RLPy2 缺乏全域 Viewport 品質等級切換及管線重載回呼，無法以 Python API 模擬此動作。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 7: #97569 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="api">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 進程架構</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97569" target="_blank" class="text-indigo-400 hover:underline">#97569</a>: CC4 & CC5 在有安裝 FashionGen 關閉AP 會產生 Crash Dump
+            </h4>
+          </div>
+          <span class="badge-api px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">架構限制</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>安裝 FashionGen 插件後，正常關閉 CC 主程式會在 Windows 系統產生 Crash Dump。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">技術阻礙剖析：</span>
+            <span class="text-slate-300">崩潰發生於主程序 ExitProcess() 瞬間。此時 Python 直譯器已被強制卸載銷毀，腳本早就停止運行，內部 API 無法斷言。需靠 OS 層級腳本監控。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 8: #96765 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="roi">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 雲端 AI 接口</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96765" target="_blank" class="text-indigo-400 hover:underline">#96765</a>: Generate Character 面板按 AI Image Gen 鈕沒反應
+            </h4>
+          </div>
+          <span class="badge-roi px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">時間/ROI</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>Project 521 中唯一明確標註 Auto Regression: None 的項目。點擊 AI Image Gen 鈕有時打得開、有時沒反應。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">ROI 權衡剖析：</span>
+            <span class="text-slate-300">牽涉雲端 AI 伺服器通訊、Token 驗證與非同步彈窗。在 CI/CD 搭建 Mock AI Server 代價巨大，衝刺期戰力優先集中在核心頭部生成與微調當機，投入 5 天自動化此按鈕嚴重不符效益。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 9: #97851 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="roi">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 非同步通訊</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97851" target="_blank" class="text-indigo-400 hover:underline">#97851</a>: 從 Regenerate Character 面板開 AI Image Generator 沒反應
+            </h4>
+          </div>
+          <span class="badge-roi px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">時間/ROI</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>點擊 Regenerate 面板後再開 AI Image Generator 無法開啟，其他入口正常。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">ROI 權衡剖析：</span>
+            <span class="text-slate-300">多執行緒網路 Race Condition 與模態對話框鎖定。自動化測試在此類網路依賴環境極易產生假警報（Flakiness），維護成本遠高於手動點測。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Case 10: #96397 -->
+      <div class="case-card panel-card rounded-xl p-5 border border-slate-800" data-cat="roi">
+        <div class="flex items-start justify-between gap-2 mb-2.5">
+          <div>
+            <span class="text-[11px] font-mono text-slate-400">Mantis Project 521 | 邊界切換</span>
+            <h4 class="text-sm font-semibold text-slate-200 mt-0.5">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96397" target="_blank" class="text-indigo-400 hover:underline">#96397</a>: 切 Mesh Tab 載角色再切 Image Tab 資料消失
+            </h4>
+          </div>
+          <span class="badge-roi px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap">時間/ROI</span>
+        </div>
+        <p class="text-xs text-slate-300 mb-3 bg-slate-900/60 p-2.5 rounded border border-slate-800/80">
+          <strong>步驟現象：</strong>HS3 切到 Mesh Tab，載入角色再切回 Image Tab，跳出 Overwrite 確認框點 OK 後圖片資料遺失。
+        </p>
+        <div class="space-y-2 text-xs">
+          <div>
+            <span class="text-slate-400 font-medium">ROI 權衡剖析：</span>
+            <span class="text-slate-300">極度罕見的操作路徑組合。手動驗證只需 5 秒鐘，自動化若要模擬彈窗確認與多標籤狀態切換需花費大量工時，生命週期總成本不具經濟效益。</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Master Comparison Table (Project 521 Clean Table) -->
+  <section id="matrix" class="max-w-7xl mx-auto px-6 py-10 border-t border-slate-800/80">
+    <div class="mb-4">
+      <h3 class="text-base font-semibold text-slate-100">Project 521 綜合歸納對照總表</h3>
+      <p class="text-xs text-slate-400">10 筆非自動回歸案例依歸因維度完整對照表</p>
+    </div>
+
+    <div class="overflow-x-auto rounded-lg border border-slate-800 bg-[#0e1726]">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-slate-800 text-slate-400 bg-slate-900/90">
+            <th class="p-3 font-semibold w-20">Mantis ID</th>
+            <th class="p-3 font-semibold">缺陷摘要</th>
+            <th class="p-3 font-semibold w-24">模組</th>
+            <th class="p-3 font-semibold w-28">主管核心歸因</th>
+            <th class="p-3 font-semibold">底層技術障礙 / 關鍵阻礙說明</th>
+            <th class="p-3 font-semibold w-36">若要自動化之先決條件</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60 text-slate-300">
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=97447" class="hover:underline">#97447</a></td>
+            <td class="p-3 font-medium">下嘴唇內部爛掉 (破面)</td>
+            <td class="p-3 text-slate-400">幾何拓撲</td>
+            <td class="p-3"><span class="badge-unsuitable px-2 py-0.5 rounded text-[11px] font-medium">根本不適合</span></td>
+            <td class="p-3">程式無例外崩潰，屬人眼審美與拓撲平滑度，代數斷言誤報率極高。</td>
+            <td class="p-3 text-slate-400">需研發微米級法線幾何比對</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=96881" class="hover:underline">#96881</a></td>
+            <td class="p-3 font-medium">重複做角色頭身膚色不一樣</td>
+            <td class="p-3 text-slate-400">膚色材質</td>
+            <td class="p-3"><span class="badge-unsuitable px-2 py-0.5 rounded text-[11px] font-medium">根本不適合</span></td>
+            <td class="p-3">膚色自然融合屬人眼審美，受環境光與著色器影響，固定閥值易失效。</td>
+            <td class="p-3 text-slate-400">需建立色差容許光照模型</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=97978" class="hover:underline">#97978</a></td>
+            <td class="p-3 font-medium">Refine Face 載入後看不到 Mesh</td>
+            <td class="p-3 text-slate-400">視圖渲染</td>
+            <td class="p-3"><span class="badge-unsuitable px-2 py-0.5 rounded text-[11px] font-medium">根本不適合</span></td>
+            <td class="p-3">視圖著色器可見性錯置，無進程崩潰，圖像識別辨識成本過高。</td>
+            <td class="p-3 text-slate-400">人工肉眼 3 秒驗收即可</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=96538" class="hover:underline">#96538</a></td>
+            <td class="p-3 font-medium">Sculpt Morph Viewport 拖曳失效</td>
+            <td class="p-3 text-slate-400">畫布操作</td>
+            <td class="p-3"><span class="badge-api px-2 py-0.5 rounded text-[11px] font-medium">API 沒開</span></td>
+            <td class="p-3">RLPy2 無視圖滑鼠光標拖曳（Viewport Drag）與頂點射線拾取接口。</td>
+            <td class="p-3 text-slate-400">RD 需封裝拖曳模擬 API</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=96928" class="hover:underline">#96928</a></td>
+            <td class="p-3 font-medium">Mesh Mode 角色開 3D Brush 當機</td>
+            <td class="p-3 text-slate-400">筆刷模組</td>
+            <td class="p-3"><span class="badge-api px-2 py-0.5 rounded text-[11px] font-medium">API 沒開</span></td>
+            <td class="p-3">3D Brush 屬於內部封閉原生工具，RLPy2 未暴露筆刷圖層與點位介面。</td>
+            <td class="p-3 text-slate-400">需 RD 暴露 3D Brush 控制代碼</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=97663" class="hover:underline">#97663</a></td>
+            <td class="p-3 font-medium">開 Mask Brush 切換品質當機</td>
+            <td class="p-3 text-slate-400">渲染管線</td>
+            <td class="p-3"><span class="badge-api px-2 py-0.5 rounded text-[11px] font-medium">API 沒開</span></td>
+            <td class="p-3">涉及全域渲染品質與筆刷管線即時切換，RLPy2 缺乏著色器重載 Hook。</td>
+            <td class="p-3 text-slate-400">需 Viewport Quality 重載回呼</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=97569" class="hover:underline">#97569</a></td>
+            <td class="p-3 font-medium">裝 FashionGen 關閉產生 Dump</td>
+            <td class="p-3 text-slate-400">進程架構</td>
+            <td class="p-3"><span class="badge-api px-2 py-0.5 rounded text-[11px] font-medium">架構限制</span></td>
+            <td class="p-3">崩潰發生於 ExitProcess() 瞬間，Python 直譯器已銷毀，內部腳本抓不到。</td>
+            <td class="p-3 text-slate-400">需 OS 層級 WER 守護進程</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=96765" class="hover:underline">#96765</a></td>
+            <td class="p-3 font-medium">AI Image Gen 按鈕沒反應</td>
+            <td class="p-3 text-slate-400">雲端接口</td>
+            <td class="p-3"><span class="badge-roi px-2 py-0.5 rounded text-[11px] font-medium">時間/ROI</span></td>
+            <td class="p-3">涉及雲端 AI 伺服器、Token 授權與非同步 Race Condition，Mock 搭建代價過大。</td>
+            <td class="p-3 text-slate-400">需搭建 Mock AI 伺服器網關</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=97851" class="hover:underline">#97851</a></td>
+            <td class="p-3 font-medium">Regenerate 開 AI Generator 沒反應</td>
+            <td class="p-3 text-slate-400">非同步通訊</td>
+            <td class="p-3"><span class="badge-roi px-2 py-0.5 rounded text-[11px] font-medium">時間/ROI</span></td>
+            <td class="p-3">偶發性非同步 Race Condition，在 CI/CD 極易引發假警報，維護成本過高。</td>
+            <td class="p-3 text-slate-400">由後端微服務合約測試防守</td>
+          </tr>
+          <tr class="hover:bg-slate-800/20">
+            <td class="p-3 font-mono text-indigo-400"><a href="http://qa-server-2/mantisbt/view.php?id=96397" class="hover:underline">#96397</a></td>
+            <td class="p-3 font-medium">切 Mesh 載角色再切 Image 資料消失</td>
+            <td class="p-3 text-slate-400">邊界切換</td>
+            <td class="p-3"><span class="badge-roi px-2 py-0.5 rounded text-[11px] font-medium">時間/ROI</span></td>
+            <td class="p-3">極罕見且冗長之邊界操作路徑。手動測試 5 秒走完，自動化 ROI 嚴重不符。</td>
+            <td class="p-3 text-slate-400">手動點測即可，不予回歸</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 py-6 text-center text-[11px] text-slate-500">
+    <p>Headshot 3.0 QA Architecture Review (Project 521 Exclusive) | Antigravity AI Engine</p>
+  </footer>
+
+  <!-- Filter Script -->
+  <script>
+    function filterCases(cat, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const cards = document.querySelectorAll('.case-card');
+      cards.forEach(card => {
+        if (cat === 'all' || card.getAttribute('data-cat') === cat) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
