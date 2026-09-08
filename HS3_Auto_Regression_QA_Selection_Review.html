@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Headshot 3.0 自動回歸與架構 API 候選評鑑報告 (QA 10 選診斷)</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'Noto Sans TC', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            // Light, Airy, Elegant Warm Earth Tone (Japandi / Cream Linen Aesthetic)
+            latte: {
+              50: '#FDFCF9',
+              100: '#FAF8F5',   // Base page canvas (接近白色的柔和米白亞麻)
+              150: '#F5F1EB',   // Subtle section bg
+              200: '#EBE5DD',   // Delicate border
+              250: '#DFD7CD',   // Divider line
+              300: '#C9BEB2',
+              400: '#A39587',
+              500: '#7D6F62',   // Secondary text
+              600: '#544A41',   // Body text
+              700: '#3D352F',
+              800: '#2B2521',   // Heading primary
+              900: '#1C1714',
+            },
+            clay: {
+              DEFAULT: '#9E674E', // Soft muted terracotta clay
+              light: '#F7EFEA',   // Very soft clay tint
+              border: '#E8D4CA',
+              dark: '#7A4A35',
+            },
+            sage: {
+              DEFAULT: '#6B7F68', // Soft herbal sage green
+              light: '#EFF4EE',
+              border: '#D2DDD0',
+              dark: '#4F634D',
+            },
+            sand: {
+              DEFAULT: '#B38959', // Soft honey sand
+              light: '#F8F4EE',
+              border: '#E7DCCB',
+              dark: '#8C673B',
+            },
+            rose: {
+              DEFAULT: '#A65B5B', // Soft muted dusty rose
+              light: '#FAF0F0',
+              border: '#EED6D6',
+              dark: '#803F3F',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #FAF8F5;
+      color: #544A41;
+      font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif;
+    }
+    .dark body {
+      background-color: #1A1715;
+      color: #D6CEC5;
+    }
+    /* Delicate custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FAF8F5;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D8CEBE;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #B38959;
+    }
+    .dark ::-webkit-scrollbar-track {
+      background: #1A1715;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #3B322D;
+    }
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.725rem;
+      font-weight: 600;
+      letter-spacing: 0.015em;
+    }
+    .soft-card {
+      background-color: #FFFFFF;
+      border: 1px solid #EBE5DD;
+      box-shadow: 0 4px 20px -2px rgba(80, 60, 45, 0.03), 0 2px 6px -1px rgba(80, 60, 45, 0.02);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .soft-card:hover {
+      border-color: #D9CEBF;
+      box-shadow: 0 10px 25px -4px rgba(80, 60, 45, 0.06), 0 4px 10px -2px rgba(80, 60, 45, 0.03);
+    }
+    .dark .soft-card {
+      background-color: #231E1B;
+      border: 1px solid #38302A;
+      box-shadow: none;
+    }
+    .dark .soft-card:hover {
+      border-color: #4F443D;
+    }
+    .code-container {
+      background-color: #25201D;
+      color: #EAE3DA;
+      border: 1px solid #38302A;
+    }
+  </style>
+</head>
+<body class="transition-colors duration-200 antialiased min-h-screen flex flex-col font-sans selection:bg-clay-light selection:text-clay-dark">
+
+  <!-- Top Frosted Navbar -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-[#1A1715]/90 backdrop-blur-md border-b border-latte-200 dark:border-[#332B25] transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Brand & Badge -->
+      <div class="flex items-center space-x-3.5">
+        <div class="w-9 h-9 rounded-xl bg-latte-150 dark:bg-[#2B241F] border border-latte-200 dark:border-[#42372E] flex items-center justify-center text-clay dark:text-sand font-bold text-sm shadow-xs">
+          HS3
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-base text-latte-800 dark:text-[#E8E1D7] tracking-tight">QA 自動回歸候選評鑑</span>
+            <span class="pill-badge bg-sand-light text-sand-dark border border-sand-border text-[11px]">Mantis #521</span>
+          </div>
+          <p class="text-[11px] text-latte-400 dark:text-latte-400 hidden sm:block">Reallusion Headshot v3.0 / CC5 架構決策審查</p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <a href="HS3_Non_AutoRegression_Analysis.html" class="hidden md:inline-flex items-center space-x-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-latte-200 dark:border-[#38302A] text-latte-600 dark:text-[#C5BCB1] hover:border-clay hover:text-clay dark:hover:text-sand transition-all bg-white dark:bg-[#231E1B]">
+          <span>📄 檢視未做回歸調研</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+
+        <a href="index.html" class="inline-flex items-center space-x-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-latte-200 dark:border-[#38302A] text-latte-600 dark:text-[#C5BCB1] hover:bg-white dark:hover:bg-[#231E1B] transition-all">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="hidden sm:inline">首頁</span>
+        </a>
+
+        <!-- Dark/Light Mode Button -->
+        <button id="theme-toggle" class="p-2 rounded-lg border border-latte-200 dark:border-[#38302A] bg-white dark:bg-[#231E1B] text-latte-600 dark:text-[#C5BCB1] hover:text-clay transition-colors" title="切換深淺模式">
+          <svg id="theme-icon-light" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="theme-icon-dark" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="py-14 border-b border-latte-200 dark:border-[#332B25] bg-gradient-to-b from-[#FAF8F5] via-latte-150/40 to-[#FAF8F5] dark:from-[#1A1715] dark:via-[#211B18] dark:to-[#1A1715]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-clay-light text-clay-dark border border-clay-border text-xs font-semibold mb-4">
+        <span>🏛️ 資深 QA 系統架構師診斷</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div class="lg:col-span-8">
+          <h1 class="text-2xl sm:text-4xl font-bold tracking-tight text-latte-800 dark:text-[#EFE9DF] leading-snug">
+            QA 測試員篩選的 10 個 API 與回歸案例：<br>
+            <span class="text-clay dark:text-sand font-semibold">成效診斷與「2 換 2」架構師處方</span>
+          </h1>
+          <p class="mt-4 text-sm sm:text-base text-latte-500 dark:text-latte-400 leading-relaxed max-w-3xl">
+            測試員精準鎖定了「阻斷夜間測試的崩潰 (Teardown Blocker)」與「跨角色快取殘留」等高價值問題；然而，清單中誤入了典型的<b>「主觀視覺反模式」</b>（#97447 嘴唇內部爛掉）並存在<b>同質冗餘</b>。實施處方調配後，整體回歸價值可從 <b>75 分</b> 提升至 <b>95 分黃金防線</b>。
+          </p>
+
+          <!-- Light Earth KPI Cards -->
+          <div class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div class="soft-card p-4 rounded-xl">
+              <div class="text-xs font-medium text-latte-400">綜合架構評分</div>
+              <div class="mt-1 text-2xl font-bold text-clay dark:text-sand">75 <span class="text-xs text-latte-400 font-normal">/ 100</span></div>
+              <div class="text-[11px] text-sage font-medium mt-0.5">優化後可達 95+</div>
+            </div>
+
+            <div class="soft-card p-4 rounded-xl">
+              <div class="text-xs font-medium text-latte-400">必做黃金案例</div>
+              <div class="mt-1 text-2xl font-bold text-sage">6 <span class="text-xs text-latte-400 font-normal">個 Case</span></div>
+              <div class="text-[11px] text-latte-500 mt-0.5">崩潰 / 單例快取污染</div>
+            </div>
+
+            <div class="soft-card p-4 rounded-xl">
+              <div class="text-xs font-medium text-latte-400">建議剔除反模式</div>
+              <div class="mt-1 text-2xl font-bold text-rose">1 <span class="text-xs text-latte-400 font-normal">個 Case</span></div>
+              <div class="text-[11px] text-latte-500 mt-0.5">#97447 嘴唇爛掉</div>
+            </div>
+
+            <div class="soft-card p-4 rounded-xl">
+              <div class="text-xs font-medium text-latte-400">建議合併同質</div>
+              <div class="mt-1 text-2xl font-bold text-sand">1 <span class="text-xs text-latte-400 font-normal">個 Case</span></div>
+              <div class="text-[11px] text-latte-500 mt-0.5">#97792 併入 #97732</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side Quote -->
+        <div class="lg:col-span-4 bg-white dark:bg-[#231E1B] p-6 rounded-2xl border border-latte-200 dark:border-[#38302A] shadow-xs">
+          <div class="flex items-center space-x-2 text-clay dark:text-sand font-semibold text-xs mb-2.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>自動化測試架構思維</span>
+          </div>
+          <p class="text-xs sm:text-sm text-latte-600 dark:text-[#C5BCB1] leading-relaxed">
+            「自動化最擅長抓的是<b>『人眼看不出的微米級頂點雜湊偏差』</b>與<b>『夜間批次阻斷』</b>；最忌諱的是拿程式斷言去評估『美不美、爛不爛、自不自然』。後者只會演變成代碼維護地獄與無休止的 False Positive。」
+          </p>
+          <div class="mt-4 pt-3 border-t border-latte-200/80 dark:border-[#332B25] flex items-center justify-between text-[11px] text-latte-400">
+            <span>—— 3D QA 系統架構組</span>
+            <span class="font-mono text-sage font-medium">Dec 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2-for-2 Swap Section -->
+  <section class="py-12 border-b border-latte-200 dark:border-[#332B25]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-8">
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-latte-800 dark:text-[#EFE9DF]">
+          🔄 架構師「2 換 2」優化處方
+        </h2>
+        <p class="mt-1.5 text-xs sm:text-sm text-latte-500 dark:text-latte-400">
+          將評估分數從 75 分拉至 95 分的關鍵調整：釋出 2 個無效/重複槽位，換進 2 個高回報決定論防線。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Swap 1 -->
+        <div class="soft-card rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <span class="pill-badge bg-rose-light text-rose-dark border border-rose-border">
+              ❌ 建議剔除槽位 1
+            </span>
+            <span class="text-xs font-bold text-latte-400 tracking-wider">SWAP 1</span>
+            <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">
+              ✅ 推薦遞補 (高 ROI)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <!-- Left: Drop #97447 -->
+            <div class="p-4 rounded-xl bg-rose-light/50 border border-rose-border/70 dark:bg-rose/10 dark:border-rose/20">
+              <div class="font-bold text-rose-dark text-xs sm:text-sm">
+                #97447 <span class="font-normal text-latte-600 dark:text-latte-400 text-xs">下嘴唇內部爛掉</span>
+              </div>
+              <p class="text-[11px] text-latte-500 dark:text-latte-400 mt-2 leading-relaxed">
+                <b>問題本質：</b>視覺美術與 Morph 權重。GPU 收到合法座標無例外拋出。若用截圖比對易因抗鋸齒假警報；人工看 3 秒即可判定，自動化維護代價過高。
+              </p>
+            </div>
+
+            <!-- Right: Add #96459 -->
+            <div class="p-4 rounded-xl bg-sage-light/50 border border-sage-border/70 dark:bg-sage/10 dark:border-sage/20">
+              <div class="font-bold text-sage-dark text-xs sm:text-sm">
+                #96459 <span class="font-normal text-latte-600 dark:text-latte-400 text-xs">幾何網格不一致</span>
+              </div>
+              <p class="text-[11px] text-latte-500 dark:text-latte-400 mt-2 leading-relaxed">
+                <b>遞補理由：</b><code class="text-clay font-mono">Apply -> Undo -> Apply</code> 造成頂點微漂移。人眼根本看不出，自動化用 <b>Vertex MD5 Hash</b> 5 毫秒精準捕捉！
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Swap 2 -->
+        <div class="soft-card rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <span class="pill-badge bg-sand-light text-sand-dark border border-sand-border">
+              🔄 建議合併槽位 2
+            </span>
+            <span class="text-xs font-bold text-latte-400 tracking-wider">SWAP 2</span>
+            <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">
+              ✅ 推薦遞補 (狀態機防線)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <!-- Left: Merge #97792 -->
+            <div class="p-4 rounded-xl bg-sand-light/50 border border-sand-border/70 dark:bg-sand/10 dark:border-sand/20">
+              <div class="font-bold text-sand-dark text-xs sm:text-sm">
+                #97792 <span class="font-normal text-latte-600 dark:text-latte-400 text-xs">New Project Crash</span>
+              </div>
+              <p class="text-[11px] text-latte-500 dark:text-latte-400 mt-2 leading-relaxed">
+                <b>問題本質：</b>與 <b>#97732</b> 根本是同一記憶體野指標（Dangling Pointer）釋放缺陷，應併入同個生命週期測試，佔用獨立名額屬冗餘。
+              </p>
+            </div>
+
+            <!-- Right: Add #97746 -->
+            <div class="p-4 rounded-xl bg-sage-light/50 border border-sage-border/70 dark:bg-sage/10 dark:border-sage/20">
+              <div class="font-bold text-sage-dark text-xs sm:text-sm">
+                #97746 <span class="font-normal text-latte-600 dark:text-latte-400 text-xs">切換後預覽崩潰</span>
+              </div>
+              <p class="text-[11px] text-latte-500 dark:text-latte-400 mt-2 leading-relaxed">
+                <b>遞補理由：</b>Refine Mesh 模態視窗在 Front 與 Side 切換時，按鈕 Callback 脫節引發空指標。防禦 UI 狀態機序列脫節的黃金案例。
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Case Diagnosis Grid -->
+  <section class="py-12 bg-latte-150/40 dark:bg-[#1E1917]/40 border-b border-latte-200 dark:border-[#332B25]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Controls -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-latte-800 dark:text-[#EFE9DF]">
+            📋 10 筆原始候選 + 2 筆推薦案例 逐條全景診斷
+          </h2>
+          <p class="mt-1 text-xs text-latte-400">
+            點選分類篩選標籤，或輸入關鍵字即時檢索 Mantis 標題與專家診斷。
+          </p>
+        </div>
+
+        <!-- Search input -->
+        <div class="w-full md:w-64">
+          <div class="relative">
+            <input type="text" id="case-search" placeholder="搜尋 ID、關鍵字..." class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-white dark:bg-[#231E1B] border border-latte-200 dark:border-[#38302A] focus:outline-none focus:border-clay transition-all text-latte-700 dark:text-[#E0D8CE]">
+            <svg class="w-3.5 h-3.5 text-latte-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="flex flex-wrap items-center gap-1.5 mb-6">
+        <button class="filter-btn active px-3 py-1 rounded-lg text-xs font-semibold transition-all bg-clay text-white shadow-xs" data-filter="all">
+          全部 (12)
+        </button>
+        <button class="filter-btn px-3 py-1 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-[#231E1B] border border-latte-200 dark:border-[#38302A] text-latte-500 hover:text-clay" data-filter="must-do">
+          ⭐⭐⭐⭐⭐ 必做黃金防線 (6)
+        </button>
+        <button class="filter-btn px-3 py-1 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-[#231E1B] border border-latte-200 dark:border-[#38302A] text-latte-500 hover:text-clay" data-filter="recommend">
+          ⭐ 邊界守護 (1)
+        </button>
+        <button class="filter-btn px-3 py-1 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-[#231E1B] border border-latte-200 dark:border-[#38302A] text-latte-500 hover:text-clay" data-filter="replace">
+          ❌ 建議剔除反模式 (1)
+        </button>
+        <button class="filter-btn px-3 py-1 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-[#231E1B] border border-latte-200 dark:border-[#38302A] text-latte-500 hover:text-clay" data-filter="merge">
+          🔄 建議合併同質 (1)
+        </button>
+        <button class="filter-btn px-3 py-1 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-[#231E1B] border border-latte-200 dark:border-[#38302A] text-latte-500 hover:text-clay" data-filter="swap">
+          💡 推薦遞補 (2)
+        </button>
+      </div>
+
+      <!-- Cards Grid -->
+      <div id="cases-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <!-- Case 1: #97814 -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="must-do">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97814" target="_blank" class="font-mono text-xs font-bold text-clay hover:underline flex items-center gap-1">
+                #97814
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              Generate Character 做 HS3 角色會 Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-rose-light text-rose-dark px-1.5 py-0.2 rounded font-medium">嚴重</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>核心 Happy Path</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>主功能最基礎的生成動作，避免基礎功能全面癱瘓。</p>
+              <p><b>架構師診斷：</b>⭐⭐⭐⭐⭐ <b>冒煙測試門禁。</b>若核心生成 Crash，下游工具全癱瘓。斷言進程返回值非 0 即可，性價比最高。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: hs.generate_character()</span>
+            <span class="text-sage font-bold">ROI: 極高</span>
+          </div>
+        </div>
+
+        <!-- Case 2: #97732 -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="must-do">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97732" target="_blank" class="font-mono text-xs font-bold text-clay hover:underline flex items-center gap-1">
+                #97732
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              HS3 Gen 完角色後, New Project 到 80% Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-rose-light text-rose-dark px-1.5 py-0.2 rounded font-medium">嚴重</span>
+              <span class="bg-rose-light text-rose-dark px-1.5 py-0.2 rounded font-medium">Affect Testing</span>
+              <span>生命週期釋放</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>嚴重阻礙日常測試流程，無法重複重開專案。</p>
+              <p><b>架構師診斷：</b>⭐⭐⭐⭐⭐ <b>批次測試生命線（Teardown Blocker）。</b>自動化最怕跑完一輪無法 New Project 乾淨退出，導致整個夜間測試中斷。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: app.new_project()</span>
+            <span class="text-sage font-bold">ROI: 極高</span>
+          </div>
+        </div>
+
+        <!-- Case 3: #97792 (Merge) -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="merge">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97792" target="_blank" class="font-mono text-xs font-bold text-sand hover:underline flex items-center gap-1">
+                #97792
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sand-light text-sand-dark border border-sand-border">建議併入 #97732</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              Re-Project / Refine Mesh 後 New Project 80-90% Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-rose-light text-rose-dark px-1.5 py-0.2 rounded font-medium">嚴重</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>同質性缺陷</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>在 Re-project 與 Refine Mesh 後也遇到相同的重置崩潰。</p>
+              <p><b>架構師診斷：</b>⭐⭐☆☆☆ <b>同質根因（Dangling Pointer）。</b>本質均是 HS3 暫存緩衝區未正確釋放。建議併入同一份測試腳本，釋放名額。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>處方: 整合為同一測試</span>
+            <span class="text-sand font-bold">冗餘釋出</span>
+          </div>
+        </div>
+
+        <!-- Case 4: #97447 (Anti-pattern, Drop) -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="replace">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97447" target="_blank" class="font-mono text-xs font-bold text-rose hover:underline flex items-center gap-1">
+                #97447
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-rose-light text-rose-dark border border-rose-border">❌ 建議剔除 / 人工點測</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              [急診室 94] HS3 做的角色下嘴唇內部爛掉
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded font-medium">重要</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>主觀視覺瑕疵</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>急診室客訴問題，希望建立自動化守護破面不重現。</p>
+              <p><b>架構師診斷：</b>❌ ⭐☆☆☆☆ <b>典型自動化反模式！</b>下嘴唇爛掉是蒙皮權重與 Morph 微差。程式不報錯，截圖比對極易誤報。人工轉視角 3 秒確認，自動化維護極昂貴。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>處方: 轉為手動冒煙驗證</span>
+            <span class="text-rose font-bold">ROI 極低</span>
+          </div>
+        </div>
+
+        <!-- Case 5: #97222 -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="must-do">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97222" target="_blank" class="font-mono text-xs font-bold text-clay hover:underline flex items-center gap-1">
+                #97222
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              場景中有角色時再做角色，Mask 是上一隻的
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded font-medium">重要</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>靜態快取殘留</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>防止生成多隻角色時，材質遮罩互相污染。</p>
+              <p><b>架構師診斷：</b>⭐⭐⭐⭐⭐ <b>單例狀態隔離防線。</b>典型靜態快取殘留。自動化循環生成 2 次並比對 Mask ID 即可精準斷言，成本低且穩定。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: hs.get_active_mask_id()</span>
+            <span class="text-sage font-bold">ROI: 高</span>
+          </div>
+        </div>
+
+        <!-- Case 6: #96928 -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="must-do">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96928" target="_blank" class="font-mono text-xs font-bold text-clay hover:underline flex items-center gap-1">
+                #96928
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              Mesh Mode 生成的角色，開 3D Brush CC 會 Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded font-medium">重要</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>跨模組橋接</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>防禦 Mesh Mode 轉換後與材質筆刷的整合崩潰。</p>
+              <p><b>架構師診斷：</b>⭐⭐⭐⭐⭐ <b>跨模組拓撲邊界。</b>Mesh Mode 產生的 UV 若未對齊 CC5 筆刷期望容易越界。腳本易於無人值守測試。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: hs.brush.open()</span>
+            <span class="text-sage font-bold">ROI: 高</span>
+          </div>
+        </div>
+
+        <!-- Case 7: #96880 -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="must-do">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96880" target="_blank" class="font-mono text-xs font-bold text-clay hover:underline flex items-center gap-1">
+                #96880
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              前一隻開 3D Paint，第二隻 undo 貼圖變前一隻
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded font-medium">重要</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>Undo 與材質污染</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>避免撤銷操作（Undo）造成跨角色的貼圖覆寫。</p>
+              <p><b>架構師診斷：</b>⭐⭐⭐⭐⭐ <b>歷史堆疊（Command Pattern）隔離。</b>手動測試容易忽略連續兩隻角色的撤銷，自動化能嚴密防範全域歷史堆疊污染。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: app.undo() + get_texture()</span>
+            <span class="text-sage font-bold">ROI: 高</span>
+          </div>
+        </div>
+
+        <!-- Case 8: #96786 -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="must-do">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96786" target="_blank" class="font-mono text-xs font-bold text-clay hover:underline flex items-center gap-1">
+                #96786
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              3D Brush 編輯存角色，重開點 3D Brush Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded font-medium">重要</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>序列化腐蝕</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>確保儲存角色檔（.ccAvatar）後，筆刷圖層能完整復原不崩潰。</p>
+              <p><b>架構師診斷：</b>⭐⭐⭐⭐⭐ <b>資產序列化與還原。</b>儲存後反序列化失敗導致野指針是軟體更新的常客，自動化執行 `Save -> Load -> Reopen` 防禦價值極高。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: app.save_avatar() + load()</span>
+            <span class="text-sage font-bold">ROI: 高</span>
+          </div>
+        </div>
+
+        <!-- Case 9: #96663 -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="must-do">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96663" target="_blank" class="font-mono text-xs font-bold text-clay hover:underline flex items-center gap-1">
+                #96663
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              Refine Mesh 進 Preview、Apply 會 Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-rose-light text-rose-dark px-1.5 py-0.2 rounded font-medium">嚴重</span>
+              <span class="bg-rose-light text-rose-dark px-1.5 py-0.2 rounded font-medium">Affect Testing</span>
+              <span>次核心模態視窗</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>Refine Mesh 是微調五官核心，進預覽或套用就崩潰直接阻斷測試。</p>
+              <p><b>架構師診斷：</b>⭐⭐⭐⭐⭐ <b>核心功能門禁。</b>Refine Mesh 涉及特徵點變形運算，API 應開放 headless 模式的 `preview()` 與 `apply()`，不可或缺。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: hs.refine_mesh.apply()</span>
+            <span class="text-sage font-bold">ROI: 極高</span>
+          </div>
+        </div>
+
+        <!-- Case 10: #96474 -->
+        <div class="case-card soft-card rounded-2xl p-5 flex flex-col justify-between" data-category="recommend">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96474" target="_blank" class="font-mono text-xs font-bold text-sand-dark hover:underline flex items-center gap-1">
+                #96474
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sand-light text-sand-dark border border-sand-border">邊界防禦</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              場景是 CC3 角色，Body Type 選 Current 生成 Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded font-medium">重要</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>拓撲相容性</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>測試員意圖：</b>防範使用者使用舊版 CC3 角色時，系統未做拓撲相容性檢查引發崩潰。</p>
+              <p><b>架構師診斷：</b>⭐⭐⭐⭐☆ <b>拓撲防禦性測試。</b>自動化應斷言 API 是否優雅返回 `False` 或拋出防護異常，而非硬性崩潰退出。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: set_body_type() 異常斷言</span>
+            <span class="text-sage font-bold">ROI: 中高</span>
+          </div>
+        </div>
+
+        <!-- Swap In 1: #96459 -->
+        <div class="case-card soft-card rounded-2xl p-5 border-2 border-sage/40 dark:border-sage/40 flex flex-col justify-between" data-category="swap">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96459" target="_blank" class="font-mono text-xs font-bold text-sage hover:underline flex items-center gap-1">
+                #96459 [架構師推薦]
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">💡 替換 #97447</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              Refine Mesh Apply All -> Undo -> Apply All 網格幾何不一致
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-rose-light text-rose-dark px-1.5 py-0.2 rounded font-medium">嚴重</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>幾何決定論 / 頂點漂移</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>為何強烈推薦：</b>⭐⭐⭐⭐⭐ <b>自動化最無可替代的戰場！</b>無 Crash 發生，但幾何形變失去決定論。手動測試肉眼看不出微米級漂移；而自動化透過比對 `get_vertex_hash()` 5 毫秒精準捕捉！</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: hs.refine_mesh.get_vertex_hash()</span>
+            <span class="text-sage font-bold">黃金案例</span>
+          </div>
+        </div>
+
+        <!-- Swap In 2: #97746 -->
+        <div class="case-card soft-card rounded-2xl p-5 border-2 border-sage/40 dark:border-sage/40 flex flex-col justify-between" data-category="swap">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97746" target="_blank" class="font-mono text-xs font-bold text-sage hover:underline flex items-center gap-1">
+                #97746 [架構師推薦]
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="pill-badge bg-sage-light text-sage-dark border border-sage-border">💡 替換 #97792</span>
+            </div>
+            <h3 class="font-bold text-sm text-latte-800 dark:text-[#EFE9DF] leading-snug">
+              Refine Mesh Front/Side 切換狀態機脫節 -> 點 Preview Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-latte-400">
+              <span class="bg-rose-light text-rose-dark px-1.5 py-0.2 rounded font-medium">嚴重</span>
+              <span class="bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.2 rounded">Normal</span>
+              <span>UI 狀態機序列</span>
+            </div>
+            <div class="mt-3 text-xs text-latte-500 dark:text-latte-400 leading-relaxed space-y-1">
+              <p><b>為何推薦：</b>⭐⭐⭐⭐⭐ <b>UI 模態狀態機防線。</b>Front/Side 分頁頻繁切換時，舊的回呼指針未重置引發空指標。自動化腳本能嚴格驗證分頁切換序列。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-latte-200 dark:border-[#332B25] flex items-center justify-between text-[11px] font-mono text-latte-400">
+            <span>API: hs.refine_mesh.switch_tab()</span>
+            <span class="text-sage font-bold">高價值防線</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Developer API Blueprint -->
+  <section class="py-14 border-b border-latte-200 dark:border-[#332B25]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-2xl mb-8">
+        <div class="inline-flex items-center space-x-2 px-3 py-0.8 rounded-full bg-sand-light border border-sand-border text-sand-dark text-xs font-semibold mb-2">
+          <span>🛠️ 研發工程規格</span>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-latte-800 dark:text-[#EFE9DF]">
+          對應這 10 個缺陷，向研發 (RD) 提出的 4 大核心 API 藍圖
+        </h2>
+        <p class="mt-1 text-xs sm:text-sm text-latte-500 dark:text-latte-400">
+          擺脫脆弱的 Windows 座標模擬點擊，向 RD 爭取開放的 scriptable Python / C++ Hook 規格：
+        </p>
+      </div>
+
+      <!-- Code Box -->
+      <div class="soft-card rounded-2xl overflow-hidden">
+        
+        <!-- Tab Buttons -->
+        <div class="flex overflow-x-auto border-b border-latte-200 dark:border-[#38302A] bg-latte-150/60 dark:bg-[#1E1917]">
+          <button class="api-tab active px-4 py-3 text-xs font-bold border-b-2 border-clay text-clay flex items-center gap-2 whitespace-nowrap" data-tab="api-gen">
+            <span>1. HeadshotGenerationAPI</span>
+            <span class="text-[10px] bg-clay-light text-clay-dark px-1.5 py-0.5 rounded">#97814, #96474</span>
+          </button>
+          <button class="api-tab px-4 py-3 text-xs font-bold border-b-2 border-transparent text-latte-400 hover:text-latte-700 flex items-center gap-2 whitespace-nowrap" data-tab="api-lifecycle">
+            <span>2. SessionLifecycleAPI</span>
+            <span class="text-[10px] bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.5 rounded">#97732, #97792</span>
+          </button>
+          <button class="api-tab px-4 py-3 text-xs font-bold border-b-2 border-transparent text-latte-400 hover:text-latte-700 flex items-center gap-2 whitespace-nowrap" data-tab="api-refine">
+            <span>3. RefineMeshAPI</span>
+            <span class="text-[10px] bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.5 rounded">#96663, #96459, #97746</span>
+          </button>
+          <button class="api-tab px-4 py-3 text-xs font-bold border-b-2 border-transparent text-latte-400 hover:text-latte-700 flex items-center gap-2 whitespace-nowrap" data-tab="api-brush">
+            <span>4. BrushTextureAPI</span>
+            <span class="text-[10px] bg-latte-150 dark:bg-[#2B241F] px-1.5 py-0.5 rounded">#96880, #96786, #96928, #97222</span>
+          </button>
+        </div>
+
+        <!-- Tab Content 1 -->
+        <div id="api-gen" class="api-panel p-6">
+          <div class="mb-3">
+            <h3 class="text-sm font-bold text-latte-800 dark:text-[#EFE9DF]">HeadshotGenerationAPI 規格定義</h3>
+            <p class="text-xs text-latte-400 mt-0.5">用於自動化 Happy Path 生成流程，並防禦舊版 CC3 拓撲造成的崩潰異常。</p>
+          </div>
+          <div class="code-container rounded-xl p-4 font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-stone-400"># RLPy2 Python Headshot Automation Binding</span>
+<span class="text-amber-300">class</span> <span class="text-emerald-300">HeadshotGenerationAPI</span>:
+    <span class="text-stone-400">"""負責核心照片生成、身體型態選擇與例外回傳"""</span>
+    
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">load_photo</span>(<span class="text-orange-200">self</span>, channel: <span class="text-emerald-200">str</span>, filepath: <span class="text-emerald-200">str</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 載入 Front 或 Side 參考照片</span>
+        ...
+        
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">set_body_type</span>(<span class="text-orange-200">self</span>, body_type: <span class="text-emerald-200">str</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 若場景角色為 CC3 且選 Current，底層必須 graceful return False 而非直接 Crash (#96474)</span>
+        ...
+        
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">generate_character</span>(<span class="text-orange-200">self</span>, timeout_sec: <span class="text-purple-200">120</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 同步/非同步執行角色頭部與身體網格生成 (#97814)</span>
+        ...
+          </div>
+        </div>
+
+        <!-- Tab Content 2 -->
+        <div id="api-lifecycle" class="api-panel p-6 hidden">
+          <div class="mb-3">
+            <h3 class="text-sm font-bold text-latte-800 dark:text-[#EFE9DF]">SessionLifecycleAPI (生命週期與資源析構)</h3>
+            <p class="text-xs text-latte-400 mt-0.5">守護 CI/CD 連續測試的生命線，保證記憶體緩衝區完全釋放無野指標。</p>
+          </div>
+          <div class="code-container rounded-xl p-4 font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-amber-300">class</span> <span class="text-emerald-300">SessionLifecycleAPI</span>:
+    <span class="text-stone-400">"""用於測試腳本安全重置與記憶體解構監控"""</span>
+    
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">new_project</span>(<span class="text-orange-200">self</span>, force: <span class="text-purple-300">bool</span> = <span class="text-purple-300">True</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 重設專案並強制執行全域 GC 與 HS3 臨時緩衝區析構 (#97732, #97792)</span>
+        ...
+        
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">get_allocated_mesh_memory</span>(<span class="text-orange-200">self</span>) -> <span class="text-purple-200">int</span>:
+        <span class="text-stone-400"># 斷言 new_project 後 HS3 頂點快取大小是否回歸 0</span>
+        ...
+          </div>
+        </div>
+
+        <!-- Tab Content 3 -->
+        <div id="api-refine" class="api-panel p-6 hidden">
+          <div class="mb-3">
+            <h3 class="text-sm font-bold text-latte-800 dark:text-[#EFE9DF]">RefineMeshAPI (五官微調與幾何決定論)</h3>
+            <p class="text-xs text-latte-400 mt-0.5">包含關鍵的 `get_vertex_hash()` 接口，專門捕捉人眼無法發現的頂點微飄移。</p>
+          </div>
+          <div class="code-container rounded-xl p-4 font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-amber-300">class</span> <span class="text-emerald-300">RefineMeshAPI</span>:
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">open</span>(<span class="text-orange-200">self</span>, tab: <span class="text-emerald-200">str</span> = <span class="text-emerald-200">"Front"</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 開啟 Refine Mesh 模態視窗 (#96663)</span>
+        ...
+        
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">switch_tab</span>(<span class="text-orange-200">self</span>, tab: <span class="text-emerald-200">str</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 切換 Front/Side 分頁，檢驗狀態機回呼完整性 (#97746)</span>
+        ...
+        
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">apply</span>(<span class="text-orange-200">self</span>, apply_all: <span class="text-purple-300">bool</span> = <span class="text-purple-300">True</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 烘焙形變至角色網格</span>
+        ...
+        
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">get_vertex_hash</span>(<span class="text-orange-200">self</span>) -> <span class="text-emerald-200">str</span>:
+        <span class="text-stone-400"># ⭐ 核心價值：計算頭部所有頂點座標的 MD5 Hash</span>
+        <span class="text-stone-400"># 用於斷言 Apply -> Undo -> Apply 的決定論一致性 (#96459)</span>
+        ...
+          </div>
+        </div>
+
+        <!-- Tab Content 4 -->
+        <div id="api-brush" class="api-panel p-6 hidden">
+          <div class="mb-3">
+            <h3 class="text-sm font-bold text-latte-800 dark:text-[#EFE9DF]">BrushTextureAPI (筆刷、遮罩與材質隔離)</h3>
+            <p class="text-xs text-latte-400 mt-0.5">守護 3D Paint 筆刷緩衝區、快取重置與角色換裝時的 Mask 隔離。</p>
+          </div>
+          <div class="code-container rounded-xl p-4 font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-amber-300">class</span> <span class="text-emerald-300">BrushTextureAPI</span>:
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">open_3d_brush</span>(<span class="text-orange-200">self</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 支援 Mesh Mode 產生的角色安全進入 3D Brush (#96928, #96786)</span>
+        ...
+        
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">get_current_mask_guid</span>(<span class="text-orange-200">self</span>) -> <span class="text-emerald-200">str</span>:
+        <span class="text-stone-400"># 驗證新角色生成時，遮罩 GUID 是否獨立於上一隻角色 (#97222)</span>
+        ...
+        
+    <span class="text-sky-300">def</span> <span class="text-yellow-200">clear_undo_paint_cache</span>(<span class="text-orange-200">self</span>) -> <span class="text-purple-300">bool</span>:
+        <span class="text-stone-400"># 避免全域撤銷棧將貼圖還原成前一隻角色的頭像 (#96880)</span>
+        ...
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-latte-200 dark:border-[#332B25] py-8 text-center text-xs text-latte-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-clay dark:text-sand">Reallusion CC / Headshot 3.0</span>
+        <span>· QA Architecture Review & Analysis</span>
+      </div>
+      <div class="flex items-center space-x-3 text-[11px]">
+        <a href="HS3_Non_AutoRegression_Analysis.html" class="hover:underline">非自動回歸調研報告</a>
+        <span>·</span>
+        <a href="index.html" class="hover:underline">專案導覽首頁</a>
+        <span>·</span>
+        <a href="https://github.com/boyu10/Reallusion" target="_blank" class="hover:underline">GitHub 儲存庫</a>
+      </div>
+      <div>
+        <span>風格：Light Warm Japandi / Soft Oatmeal Palette</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script Logic (FORCED LIGHT MODE AS DEFAULT) -->
+  <script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIconLight = document.getElementById('theme-icon-light');
+    const themeIconDark = document.getElementById('theme-icon-dark');
+
+    function updateThemeUI(isDark) {
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        themeIconLight.classList.remove('hidden');
+        themeIconDark.classList.add('hidden');
+      } else {
+        document.documentElement.classList.remove('dark');
+        themeIconLight.classList.add('hidden');
+        themeIconDark.classList.remove('hidden');
+      }
+    }
+
+    // ⭐ KEY FIX: ALWAYS DEFAULT TO LIGHT MODE (接近白色的柔和米白大地色)
+    // Clear any previous dark mode preference in localStorage and DO NOT trigger dark by OS prefers-color-scheme
+    localStorage.removeItem('theme');
+    let isDark = false;
+    updateThemeUI(false);
+
+    themeToggleBtn.addEventListener('click', () => {
+      isDark = !document.documentElement.classList.contains('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      updateThemeUI(isDark);
+    });
+
+    // Filter Logic
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const caseCards = document.querySelectorAll('.case-card');
+    const searchInput = document.getElementById('case-search');
+
+    let currentFilter = 'all';
+
+    function applyFilterAndSearch() {
+      const query = searchInput.value.trim().toLowerCase();
+
+      caseCards.forEach(card => {
+        const category = card.getAttribute('data-category');
+        const text = card.textContent.toLowerCase();
+
+        const matchesFilter = (currentFilter === 'all') || (category === currentFilter);
+        const matchesSearch = !query || text.includes(query);
+
+        if (matchesFilter && matchesSearch) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => {
+          b.classList.remove('active', 'bg-clay', 'text-white', 'shadow-xs');
+          b.classList.add('bg-white', 'dark:bg-[#231E1B]', 'text-latte-500');
+        });
+        btn.classList.add('active', 'bg-clay', 'text-white', 'shadow-xs');
+        btn.classList.remove('bg-white', 'dark:bg-[#231E1B]', 'text-latte-500');
+        currentFilter = btn.getAttribute('data-filter');
+        applyFilterAndSearch();
+      });
+    });
+
+    searchInput.addEventListener('input', applyFilterAndSearch);
+
+    // API Tabs
+    const apiTabs = document.querySelectorAll('.api-tab');
+    const apiPanels = document.querySelectorAll('.api-panel');
+
+    apiTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetId = tab.getAttribute('data-tab');
+        
+        apiTabs.forEach(t => {
+          t.classList.remove('active', 'border-clay', 'text-clay');
+          t.classList.add('border-transparent', 'text-latte-400');
+        });
+        tab.classList.add('active', 'border-clay', 'text-clay');
+        tab.classList.remove('border-transparent', 'text-latte-400');
+
+        apiPanels.forEach(panel => {
+          if (panel.id === targetId) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
