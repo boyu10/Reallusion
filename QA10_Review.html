@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Headshot 3.0 自動回歸與架構 API 候選評鑑報告 (QA 10 選診斷)</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+            serif: ['Cinzel', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            earth: {
+              canvas: '#FBF8F3',
+              paper: '#F5ECE1',
+              card: '#FFFFFF',
+              border: '#E8DBC8',
+              muted: '#8A7768',
+              text: '#2C221E',
+              // Dark Earth
+              darkBg: '#1B1715',
+              darkSurface: '#241E1A',
+              darkCard: '#2C2521',
+              darkBorder: '#423730',
+              darkText: '#EDE5DA',
+              darkMuted: '#A39284',
+              // Accent Colors
+              terracotta: '#BF5538',
+              terracottaHover: '#A84429',
+              ochre: '#CF8738',
+              ochreLight: '#FCEFD9',
+              olive: '#657A57',
+              oliveLight: '#EBF1E8',
+              sand: '#D4C3AC',
+              clay: '#9E5B44'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1eae0;
+    }
+    .dark ::-webkit-scrollbar-track {
+      background: #1e1917;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c8b7a4;
+      border-radius: 4px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #4a3e36;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #bf5538;
+    }
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+    }
+    .code-block {
+      background: #231C18;
+      color: #F5EAE1;
+      border: 1px solid #3F332B;
+    }
+  </style>
+</head>
+<body class="bg-earth-canvas text-earth-text dark:bg-earth-darkBg dark:text-earth-darkText transition-colors duration-200 antialiased min-h-screen flex flex-col font-sans selection:bg-earth-terracotta selection:text-white">
+
+  <!-- Top Sticky Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-earth-canvas/90 dark:bg-earth-darkBg/90 backdrop-blur-md border-b border-earth-border dark:border-earth-darkBorder transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-earth-terracotta to-earth-ochre flex items-center justify-center shadow-md shadow-earth-terracotta/20 text-white font-serif font-bold text-lg">
+          HS3
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-bold text-base sm:text-lg tracking-tight text-earth-text dark:text-earth-darkText">QA 回歸候選評鑑報告</h1>
+            <span class="bg-earth-ochre/15 text-earth-ochre text-xs px-2 py-0.5 rounded-full font-semibold border border-earth-ochre/30">Mantis #521</span>
+          </div>
+          <p class="text-xs text-earth-muted dark:text-earth-darkMuted hidden sm:block">Reallusion Headshot v3.0 / CC5 自動化與 API 審查</p>
+        </div>
+      </div>
+
+      <!-- Quick Nav & Actions -->
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <!-- Cross link to Non-AutoRegression page -->
+        <a href="HS3_Non_AutoRegression_Analysis.html" class="hidden md:inline-flex items-center space-x-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-earth-border dark:border-earth-darkBorder hover:border-earth-terracotta hover:text-earth-terracotta dark:hover:text-earth-ochre transition-all bg-earth-paper/50 dark:bg-earth-darkSurface">
+          <span>📄 查看為什麼沒做回歸</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+
+        <!-- Home link -->
+        <a href="index.html" class="inline-flex items-center space-x-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-earth-border dark:border-earth-darkBorder hover:bg-earth-paper dark:hover:bg-earth-darkSurface transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="hidden sm:inline">首頁</span>
+        </a>
+
+        <!-- Dark/Light Mode Switcher -->
+        <button id="theme-toggle" class="p-2 rounded-lg border border-earth-border dark:border-earth-darkBorder bg-earth-card dark:bg-earth-darkSurface text-earth-text dark:text-earth-darkText hover:text-earth-terracotta transition-colors" title="切換深淺模式">
+          <svg id="theme-icon-light" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="theme-icon-dark" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="py-12 bg-gradient-to-b from-earth-paper/70 to-earth-canvas dark:from-earth-darkSurface dark:to-earth-darkBg border-b border-earth-border dark:border-earth-darkBorder">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-earth-terracotta/10 border border-earth-terracotta/20 text-earth-terracotta dark:text-earth-ochre text-xs font-semibold uppercase tracking-wider mb-4">
+        <span>🏛️ 資深 QA 系統架構師深度評審</span>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div class="lg:col-span-8">
+          <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-earth-text dark:text-earth-darkText leading-tight">
+            QA 測試員篩選的 10 個 API 與回歸案例：<br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-earth-terracotta via-earth-ochre to-earth-clay">
+              成效診斷與「2 換 2」架構師處方
+            </span>
+          </h1>
+          <p class="mt-4 text-base sm:text-lg text-earth-muted dark:text-earth-darkMuted leading-relaxed">
+            測試員精準鎖定了「阻斷夜間測試的崩潰 (Teardown Blocker)」與「跨角色快取殘留」等高價值問題；然而，清單中誤入了典型的<b>「主觀視覺反模式」</b>（#97447 嘴唇內部爛掉）並存在<b>同質冗餘</b>。實施處方調配後，整體回歸價值可從 <b>75 分</b> 提升至 <b>95 分黃金防線</b>。
+          </p>
+
+          <!-- Executive KPI Grid -->
+          <div class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-earth-card dark:bg-earth-darkCard p-4 rounded-xl border border-earth-border dark:border-earth-darkBorder shadow-sm">
+              <div class="text-xs font-medium text-earth-muted dark:text-earth-darkMuted">綜合架構評分</div>
+              <div class="mt-1 text-2xl font-black text-earth-terracotta">75 <span class="text-xs text-earth-muted font-normal">/ 100</span></div>
+              <div class="text-[11px] text-earth-olive mt-0.5">優化後可達 95+</div>
+            </div>
+
+            <div class="bg-earth-card dark:bg-earth-darkCard p-4 rounded-xl border border-earth-border dark:border-earth-darkBorder shadow-sm">
+              <div class="text-xs font-medium text-earth-muted dark:text-earth-darkMuted">必做黃金案例</div>
+              <div class="mt-1 text-2xl font-black text-earth-olive">6 <span class="text-xs text-earth-muted font-normal">個 Case</span></div>
+              <div class="text-[11px] text-earth-muted mt-0.5">崩潰/單例快取污染</div>
+            </div>
+
+            <div class="bg-earth-card dark:bg-earth-darkCard p-4 rounded-xl border border-earth-border dark:border-earth-darkBorder shadow-sm">
+              <div class="text-xs font-medium text-earth-muted dark:text-earth-darkMuted">建議剔除反模式</div>
+              <div class="mt-1 text-2xl font-black text-red-600 dark:text-red-400">1 <span class="text-xs text-earth-muted font-normal">個 Case</span></div>
+              <div class="text-[11px] text-earth-muted mt-0.5">#97447 嘴唇爛掉</div>
+            </div>
+
+            <div class="bg-earth-card dark:bg-earth-darkCard p-4 rounded-xl border border-earth-border dark:border-earth-darkBorder shadow-sm">
+              <div class="text-xs font-medium text-earth-muted dark:text-earth-darkMuted">建議合併/同質</div>
+              <div class="mt-1 text-2xl font-black text-earth-ochre">1 <span class="text-xs text-earth-muted font-normal">個 Case</span></div>
+              <div class="text-[11px] text-earth-muted mt-0.5">#97792 併入 #97732</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side Quote/Notice Box -->
+        <div class="lg:col-span-4 bg-earth-paper dark:bg-earth-darkSurface p-6 rounded-2xl border border-earth-border dark:border-earth-darkBorder shadow-md">
+          <div class="flex items-center space-x-2 text-earth-terracotta dark:text-earth-ochre font-bold text-sm mb-3">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>自動化測試第一鐵律</span>
+          </div>
+          <p class="text-sm text-earth-text/90 dark:text-earth-darkText/90 leading-relaxed italic">
+            「自動化最擅長抓的是『人眼看不出的微米級頂點雜湊偏差』與『夜間批次阻斷』；最忌諱的是拿程式斷言去評估『美不美、爛不爛、自不自然』。後者只會演變成代碼維護地獄與無休止的 False Positive。」
+          </p>
+          <div class="mt-4 pt-4 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-xs text-earth-muted">
+            <span>—— 3D QA 測試架構組</span>
+            <span class="bg-earth-olive/15 text-earth-olive px-2 py-0.5 rounded font-mono font-semibold">Dec 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architect's 2-for-2 Swap Section -->
+  <section class="py-12 bg-earth-canvas dark:bg-earth-darkBg border-b border-earth-border dark:border-earth-darkBorder">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-10">
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-earth-text dark:text-earth-darkText">
+          🔄 架構師「2 換 2」優化處方
+        </h2>
+        <p class="mt-2 text-sm sm:text-base text-earth-muted dark:text-earth-darkMuted">
+          將評估分數從 75 分直接拉至 95 分的關鍵調整：釋出 2 個無效/重複槽位，換進 2 個高回報決定論防線。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Card 1: 剔除 #97447 -> 換入 #96459 -->
+        <div class="bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-bold px-2.5 py-1 rounded bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/60">
+              ❌ 建議剔除槽位 1
+            </span>
+            <span class="text-sm font-bold text-earth-muted">SWAP 1</span>
+            <span class="text-xs font-bold px-2.5 py-1 rounded bg-earth-olive/15 text-earth-olive border border-earth-olive/30">
+              ✅ 推薦遞補 (高 ROI)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Left: #97447 -->
+            <div class="p-4 rounded-xl bg-red-50/50 dark:bg-red-950/20 border border-red-200/60 dark:border-red-900/30">
+              <div class="flex items-center space-x-1.5 font-bold text-red-800 dark:text-red-300 text-sm">
+                <span>#97447</span>
+                <span class="text-xs font-normal">下嘴唇內部爛掉</span>
+              </div>
+              <p class="text-xs text-red-700/80 dark:text-red-300/70 mt-2 leading-relaxed">
+                <b>問題本質：</b>視覺美術與 Morph 權重。GPU 收到合法座標無例外拋出。若用截圖比對易因抗鋸齒假警報；人工看 3 秒即可判定，自動化代價過高。
+              </p>
+            </div>
+
+            <!-- Right: #96459 -->
+            <div class="p-4 rounded-xl bg-earth-oliveLight/60 dark:bg-earth-olive/10 border border-earth-olive/30">
+              <div class="flex items-center space-x-1.5 font-bold text-earth-olive dark:text-emerald-400 text-sm">
+                <span>#96459</span>
+                <span class="text-xs font-normal">Refine Mesh 幾何不一致</span>
+              </div>
+              <p class="text-xs text-earth-text/80 dark:text-earth-darkText/80 mt-2 leading-relaxed">
+                <b>遞補理由：</b><code class="text-earth-terracotta font-mono font-bold">Apply -> Undo -> Apply</code> 造成頂點座標微漂移。人眼看不出，自動化用 <b>Vertex MD5 Hash</b> 5 毫秒精準捕捉！
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: 合併 #97792 -> 換入 #97746 -->
+        <div class="bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-bold px-2.5 py-1 rounded bg-earth-ochre/15 text-earth-ochre border border-earth-ochre/30">
+              🔄 建議合併槽位 2
+            </span>
+            <span class="text-sm font-bold text-earth-muted">SWAP 2</span>
+            <span class="text-xs font-bold px-2.5 py-1 rounded bg-earth-olive/15 text-earth-olive border border-earth-olive/30">
+              ✅ 推薦遞補 (狀態機防線)
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Left: #97792 -->
+            <div class="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/30">
+              <div class="flex items-center space-x-1.5 font-bold text-amber-800 dark:text-amber-300 text-sm">
+                <span>#97792</span>
+                <span class="text-xs font-normal">Re-project New Project Crash</span>
+              </div>
+              <p class="text-xs text-amber-800/80 dark:text-amber-300/70 mt-2 leading-relaxed">
+                <b>問題本質：</b>與 <b>#97732</b> 根本是同一記憶體野指標（Dangling Pointer）釋放缺陷，應併入同個生命週期測試，佔用獨立名額屬冗餘。
+              </p>
+            </div>
+
+            <!-- Right: #97746 -->
+            <div class="p-4 rounded-xl bg-earth-oliveLight/60 dark:bg-earth-olive/10 border border-earth-olive/30">
+              <div class="flex items-center space-x-1.5 font-bold text-earth-olive dark:text-emerald-400 text-sm">
+                <span>#97746</span>
+                <span class="text-xs font-normal">Front/Side 切換後點擊崩潰</span>
+              </div>
+              <p class="text-xs text-earth-text/80 dark:text-earth-darkText/80 mt-2 leading-relaxed">
+                <b>遞補理由：</b>Refine Mesh 模態視窗在 Front 與 Side 分頁切換時，內部狀態機按鈕 Callback 脫節引發空指標。防禦 UI 狀態機序列脫節的黃金案例。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Case Diagnosis Section -->
+  <section class="py-12 bg-earth-paper/40 dark:bg-earth-darkSurface/50 border-b border-earth-border dark:border-earth-darkBorder">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Section Header & Filter Controls -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-earth-text dark:text-earth-darkText">
+            📋 10 筆原始候選 + 2 筆推薦案例 逐條全景診斷
+          </h2>
+          <p class="mt-1 text-sm text-earth-muted dark:text-earth-darkMuted">
+            點選標籤進行快速篩選，或透過關鍵字即時搜尋 Mantis 標題與專家診斷。
+          </p>
+        </div>
+
+        <!-- Search input -->
+        <div class="w-full md:w-72">
+          <div class="relative">
+            <input type="text" id="case-search" placeholder="搜尋 ID、關鍵字 (例如: Crash, Brush, 97732)..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-earth-card dark:bg-earth-darkCard border border-earth-border dark:border-earth-darkBorder focus:outline-none focus:ring-2 focus:ring-earth-terracotta transition-all text-earth-text dark:text-earth-darkText">
+            <svg class="w-4 h-4 text-earth-muted absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="flex flex-wrap items-center gap-2 mb-8">
+        <button class="filter-btn active px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-earth-terracotta text-white shadow-sm" data-filter="all">
+          全部案例 (12)
+        </button>
+        <button class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-earth-card dark:bg-earth-darkCard border border-earth-border dark:border-earth-darkBorder text-earth-muted hover:text-earth-terracotta" data-filter="must-do">
+          ⭐⭐⭐⭐⭐ 必做黃金防線 (6)
+        </button>
+        <button class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-earth-card dark:bg-earth-darkCard border border-earth-border dark:border-earth-darkBorder text-earth-muted hover:text-earth-terracotta" data-filter="recommend">
+          ⭐ 推薦與邊界守護 (2)
+        </button>
+        <button class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-earth-card dark:bg-earth-darkCard border border-earth-border dark:border-earth-darkBorder text-earth-muted hover:text-earth-terracotta" data-filter="replace">
+          ❌ 建議剔除反模式 (1)
+        </button>
+        <button class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-earth-card dark:bg-earth-darkCard border border-earth-border dark:border-earth-darkBorder text-earth-muted hover:text-earth-terracotta" data-filter="merge">
+          🔄 建議合併同質 (1)
+        </button>
+        <button class="filter-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-earth-card dark:bg-earth-darkCard border border-earth-border dark:border-earth-darkBorder text-earth-muted hover:text-earth-terracotta" data-filter="swap">
+          💡 架構師推薦遞補 (2)
+        </button>
+      </div>
+
+      <!-- Cards Grid -->
+      <div id="cases-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Case 1: #97814 -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="must-do" data-id="97814">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97814" target="_blank" class="font-mono text-sm font-bold text-earth-terracotta hover:underline flex items-center gap-1">
+                #97814
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/15 text-earth-olive border border-earth-olive/30">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              Generate Character 做 HS3 角色會 Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">嚴重</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>核心 Happy Path</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>主功能最基礎的生成動作，避免基礎功能全面癱瘓。</p>
+              <p><b>架構師評價：</b>⭐⭐⭐⭐⭐ <b>冒煙測試門禁。</b>如果核心生成 Crash，下游所有工具均無法測試。斷言極其簡單（進程非 0 退出碼或 API 返回有效角色指針），投資報酬率最高。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: hs.generate_character()</span>
+            <span class="text-earth-olive font-bold">ROI: 極高</span>
+          </div>
+        </div>
+
+        <!-- Case 2: #97732 -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="must-do" data-id="97732">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97732" target="_blank" class="font-mono text-sm font-bold text-earth-terracotta hover:underline flex items-center gap-1">
+                #97732
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/15 text-earth-olive border border-earth-olive/30">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              HS3 Gen 完角色後, New Project 到 80% Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">嚴重</span>
+              <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">Affect Testing</span>
+              <span>生命週期釋放</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>嚴重阻礙日常測試流程，無法重複重開專案。</p>
+              <p><b>架構師評價：</b>⭐⭐⭐⭐⭐ <b>批次測試生命線（Teardown Blocker）。</b>自動化最怕跑完一輪無法 New Project 乾淨退出，導致整個夜間測試中斷。必須要求 RD 開放 `app.new_project()`。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: app.new_project()</span>
+            <span class="text-earth-olive font-bold">ROI: 極高</span>
+          </div>
+        </div>
+
+        <!-- Case 3: #97792 (Suggest merge into 97732) -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="merge" data-id="97792">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97792" target="_blank" class="font-mono text-sm font-bold text-earth-ochre hover:underline flex items-center gap-1">
+                #97792
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-ochre/15 text-earth-ochre border border-earth-ochre/30">建議合併至 #97732</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              Re-Project / Refine Mesh 後 New Project 80-90% Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">嚴重</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>同質性缺陷</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>在 Re-project 與 Refine Mesh 後也遇到相同的重置崩潰。</p>
+              <p><b>架構師評價：</b>⭐⭐☆☆☆ <b>同質根因（Dangling Pointer）。</b>本質均是 HS3 暫存緩衝區未正確解除綁定。建議併入同一份 `Lifecycle_Stress_Test` 測試腳本，釋放名額留給其他高風險模組。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>建議動作: 併入同一套測試</span>
+            <span class="text-earth-ochre font-bold">冗餘釋出</span>
+          </div>
+        </div>
+
+        <!-- Case 4: #97447 (Anti-pattern, Drop) -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="replace" data-id="97447">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97447" target="_blank" class="font-mono text-sm font-bold text-red-600 hover:underline flex items-center gap-1">
+                #97447
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/60">❌ 建議剔除 / 人工驗收</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              [急診室 94] HS3 做的角色下嘴唇內部爛掉
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">重要</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>主觀視覺瑕疵</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>急診室客訴問題，希望建立自動化守護破面不重現。</p>
+              <p><b>架構師評價：</b>❌ ⭐☆☆☆☆ <b>典型自動化反模式！</b>下嘴唇爛掉是蒙皮權重與 Morph 變形微差。程式不崩潰、無錯誤代碼；截圖比對會因為光影微變導致無數 False Positive。人工轉視角 3 秒確認，寫自動化維護要數月。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>處方: 轉為手動冒煙點測</span>
+            <span class="text-red-600 font-bold">ROI 極低</span>
+          </div>
+        </div>
+
+        <!-- Case 5: #97222 -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="must-do" data-id="97222">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97222" target="_blank" class="font-mono text-sm font-bold text-earth-terracotta hover:underline flex items-center gap-1">
+                #97222
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/15 text-earth-olive border border-earth-olive/30">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              場景中有角色時再做角色，Mask 是上一隻的
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">重要</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>靜態快取殘留</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>防止生成多隻角色時，材質遮罩互相污染。</p>
+              <p><b>架構師評價：</b>⭐⭐⭐⭐⭐ <b>單例狀態隔離防線。</b>典型靜態 Singleton Cache 殘留。自動化腳本能以代碼自動循環執行 2 次生成，並比對二者的 Mask ID 是否獨立，性價比極高。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: hs.get_active_mask_id()</span>
+            <span class="text-earth-olive font-bold">ROI: 高</span>
+          </div>
+        </div>
+
+        <!-- Case 6: #96928 -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="must-do" data-id="96928">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96928" target="_blank" class="font-mono text-sm font-bold text-earth-terracotta hover:underline flex items-center gap-1">
+                #96928
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/15 text-earth-olive border border-earth-olive/30">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              Mesh Mode 生成的角色，開 3D Brush CC 會 Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">重要</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>跨模組橋接</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>防禦 Mesh Mode 轉換後與材質筆刷的整合崩潰。</p>
+              <p><b>架構師評價：</b>⭐⭐⭐⭐⭐ <b>跨模組拓撲邊界。</b>Mesh Mode 產生的 UV 與頂點索引若未正常對齊 CC5 筆刷期望，容易造成記憶體存取違規。腳本易於無人值守測試。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: hs.brush.open()</span>
+            <span class="text-earth-olive font-bold">ROI: 高</span>
+          </div>
+        </div>
+
+        <!-- Case 7: #96880 -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="must-do" data-id="96880">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96880" target="_blank" class="font-mono text-sm font-bold text-earth-terracotta hover:underline flex items-center gap-1">
+                #96880
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/15 text-earth-olive border border-earth-olive/30">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              前一隻開 3D Paint，第二隻 undo 貼圖變前一隻
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">重要</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>Undo 與材質污染</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>避免撤銷操作（Undo）造成跨角色的貼圖覆寫。</p>
+              <p><b>架構師評價：</b>⭐⭐⭐⭐⭐ <b>歷史堆疊（Command Pattern）隔離。</b>手動測試不容易每次都記得連續開兩隻並撤銷，自動化可以嚴密防範全域歷史堆疊未隨專案更新重置的 Bug。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: app.undo() + get_texture()</span>
+            <span class="text-earth-olive font-bold">ROI: 高</span>
+          </div>
+        </div>
+
+        <!-- Case 8: #96786 -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="must-do" data-id="96786">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96786" target="_blank" class="font-mono text-sm font-bold text-earth-terracotta hover:underline flex items-center gap-1">
+                #96786
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/15 text-earth-olive border border-earth-olive/30">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              3D Brush 編輯存角色，重開點 3D Brush Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">重要</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>序列化腐蝕</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>確保儲存角色檔（.ccAvatar）後，筆刷圖層能完整復原而不崩潰。</p>
+              <p><b>架構師評價：</b>⭐⭐⭐⭐⭐ <b>資產序列化與還原（Asset Rehydration）。</b>這類儲存後反序列化失敗導致野指針是軟體更新的常客，自動化執行 `Save -> Reload -> Re-open` 極具回歸防禦價值。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: app.save_avatar() + load()</span>
+            <span class="text-earth-olive font-bold">ROI: 高</span>
+          </div>
+        </div>
+
+        <!-- Case 9: #96663 -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="must-do" data-id="96663">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96663" target="_blank" class="font-mono text-sm font-bold text-earth-terracotta hover:underline flex items-center gap-1">
+                #96663
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/15 text-earth-olive border border-earth-olive/30">必做黃金防線</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              Refine Mesh 進 Preview、Apply 會 Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">嚴重</span>
+              <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">Affect Testing</span>
+              <span>次核心模態視窗</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>Refine Mesh 是微調五官核心，進預覽或套用就崩潰直接阻斷測試。</p>
+              <p><b>架構師評價：</b>⭐⭐⭐⭐⭐ <b>核心功能門禁。</b>Refine Mesh 涉及前端特徵點變形運算（Morph Deformation Bake），API 應開放 headless 模式的 `preview()` 與 `apply()`，不可或缺。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: hs.refine_mesh.apply()</span>
+            <span class="text-earth-olive font-bold">ROI: 極高</span>
+          </div>
+        </div>
+
+        <!-- Case 10: #96474 -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="recommend" data-id="96474">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96474" target="_blank" class="font-mono text-sm font-bold text-earth-terracotta hover:underline flex items-center gap-1">
+                #96474
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-sand/30 text-earth-clay border border-earth-sand">邊界防禦</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              場景是 CC3 角色，Body Type 選 Current 生成 Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">重要</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>舊版拓撲不相容</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>測試員意圖：</b>防範使用者使用舊版 CC3 角色時，系統未做拓撲相容性檢查引發崩潰。</p>
+              <p><b>架構師評價：</b>⭐⭐⭐⭐☆ <b>拓撲防禦性測試。</b>CC3 骨架頂點缺少 CC5 新增屬性。自動化應斷言 API 是否優雅返回 `False` 或拋出防護異常，而非硬性崩潰退出。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: set_body_type() 防禦斷言</span>
+            <span class="text-earth-olive font-bold">ROI: 中高</span>
+          </div>
+        </div>
+
+        <!-- Replacement 1: #96459 (Recommended Swap In) -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border-2 border-earth-olive/50 dark:border-earth-olive/40 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="swap" data-id="96459">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=96459" target="_blank" class="font-mono text-sm font-bold text-earth-olive hover:underline flex items-center gap-1">
+                #96459 [架構師推薦]
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/20 text-earth-olive border border-earth-olive/40">💡 替換 #97447</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              Refine Mesh Apply All -> Undo -> Apply All 網格幾何不一致
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">嚴重</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>決定論 / 頂點漂移</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>為何強烈推薦：</b>⭐⭐⭐⭐⭐ <b>自動化最無可替代的戰場！</b>無 Crash 發生，但幾何形變失去決定論。手動測試肉眼根本看不出微米級漂移；而自動化透過比對 `get_vertex_hash()` 5 毫秒精準捕捉！</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: hs.refine_mesh.get_vertex_hash()</span>
+            <span class="text-emerald-600 font-bold">黃金案例</span>
+          </div>
+        </div>
+
+        <!-- Replacement 2: #97746 (Recommended Swap In) -->
+        <div class="case-card bg-earth-card dark:bg-earth-darkCard rounded-2xl border-2 border-earth-olive/50 dark:border-earth-olive/40 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" data-category="swap" data-id="97746">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <a href="http://qa-server-2/mantisbt/view.php?id=97746" target="_blank" class="font-mono text-sm font-bold text-earth-olive hover:underline flex items-center gap-1">
+                #97746 [架構師推薦]
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
+              <span class="tag-badge bg-earth-olive/20 text-earth-olive border border-earth-olive/40">💡 替換 #97792</span>
+            </div>
+            <h3 class="font-bold text-base text-earth-text dark:text-earth-darkText leading-snug">
+              Refine Mesh Front/Side 切換狀態機脫節 -> 點 Preview Crash
+            </h3>
+            <div class="mt-2 flex items-center space-x-2 text-[11px] text-earth-muted">
+              <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">嚴重</span>
+              <span class="bg-earth-paper dark:bg-earth-darkSurface px-1.5 py-0.5 rounded font-medium">Normal</span>
+              <span>狀態機脫節</span>
+            </div>
+            <div class="mt-3 text-xs text-earth-muted dark:text-earth-darkMuted leading-relaxed space-y-1.5">
+              <p><b>為何推薦：</b>⭐⭐⭐⭐⭐ <b>UI 模態狀態機防線。</b>在 Front/Side 分頁頻繁切換時，舊的事件回呼指針未重置，點擊時調用了已銷毀的記憶體位址。自動化腳本能嚴格驗證分頁切換序列。</p>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-earth-border/60 dark:border-earth-darkBorder/60 flex items-center justify-between text-[11px] text-earth-muted font-mono">
+            <span>API: hs.refine_mesh.switch_tab()</span>
+            <span class="text-emerald-600 font-bold">高價值防線</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- RD Developer API Blueprint Section -->
+  <section class="py-14 bg-earth-canvas dark:bg-earth-darkBg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl mb-10">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-earth-ochre/15 border border-earth-ochre/30 text-earth-ochre text-xs font-semibold uppercase tracking-wider mb-2">
+          <span>🛠️ 研發工程規格</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-earth-text dark:text-earth-darkText">
+          對應這 10 個缺陷，向研發 (RD) 提出的 4 大核心 API 藍圖
+        </h2>
+        <p class="mt-2 text-sm sm:text-base text-earth-muted dark:text-earth-darkMuted">
+          為了徹底擺脫脆弱的 Windows 座標模擬點擊（Coordinate-based Click），向 RD 爭取開放的 scriptable Python / C++ Hook 規格：
+        </p>
+      </div>
+
+      <!-- API Tabs & Code Panels -->
+      <div class="bg-earth-card dark:bg-earth-darkCard rounded-2xl border border-earth-border dark:border-earth-darkBorder overflow-hidden shadow-sm">
+        
+        <!-- Tab Navigation -->
+        <div class="flex overflow-x-auto border-b border-earth-border dark:border-earth-darkBorder bg-earth-paper/60 dark:bg-earth-darkSurface/60">
+          <button class="api-tab active px-5 py-3 text-xs font-bold border-b-2 border-earth-terracotta text-earth-terracotta flex items-center gap-2 whitespace-nowrap" data-tab="api-gen">
+            <span>1. HeadshotGenerationAPI</span>
+            <span class="text-[10px] bg-earth-terracotta/10 px-1.5 py-0.5 rounded">#97814, #96474</span>
+          </button>
+          <button class="api-tab px-5 py-3 text-xs font-bold border-b-2 border-transparent text-earth-muted hover:text-earth-text dark:hover:text-earth-darkText flex items-center gap-2 whitespace-nowrap" data-tab="api-lifecycle">
+            <span>2. SessionLifecycleAPI</span>
+            <span class="text-[10px] bg-earth-paper dark:bg-earth-darkCard px-1.5 py-0.5 rounded">#97732, #97792</span>
+          </button>
+          <button class="api-tab px-5 py-3 text-xs font-bold border-b-2 border-transparent text-earth-muted hover:text-earth-text dark:hover:text-earth-darkText flex items-center gap-2 whitespace-nowrap" data-tab="api-refine">
+            <span>3. RefineMeshAPI</span>
+            <span class="text-[10px] bg-earth-paper dark:bg-earth-darkCard px-1.5 py-0.5 rounded">#96663, #96459, #97746</span>
+          </button>
+          <button class="api-tab px-5 py-3 text-xs font-bold border-b-2 border-transparent text-earth-muted hover:text-earth-text dark:hover:text-earth-darkText flex items-center gap-2 whitespace-nowrap" data-tab="api-brush">
+            <span>4. BrushTextureAPI</span>
+            <span class="text-[10px] bg-earth-paper dark:bg-earth-darkCard px-1.5 py-0.5 rounded">#96880, #96786, #96928, #97222</span>
+          </button>
+        </div>
+
+        <!-- Tab 1: Generation API -->
+        <div id="api-gen" class="api-panel p-6">
+          <div class="mb-4">
+            <h3 class="text-base font-bold text-earth-text dark:text-earth-darkText">HeadshotGenerationAPI 規格定義</h3>
+            <p class="text-xs text-earth-muted dark:text-earth-darkMuted mt-1">用於自動化 Happy Path 生成流程，並防禦舊版 CC3 拓撲造成的崩潰異常。</p>
+          </div>
+          <div class="code-block rounded-xl p-4 font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-stone-500"># RLPy2 Python Headshot Automation Binding</span>
+<span class="text-amber-400">class</span> <span class="text-emerald-400">HeadshotGenerationAPI</span>:
+    <span class="text-stone-500">"""負責核心照片生成、身體型態選擇與例外回傳"""</span>
+    
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">load_photo</span>(<span class="text-orange-300">self</span>, channel: <span class="text-emerald-300">str</span>, filepath: <span class="text-emerald-300">str</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 載入 Front 或 Side 參考照片</span>
+        ...
+        
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">set_body_type</span>(<span class="text-orange-300">self</span>, body_type: <span class="text-emerald-300">str</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 若場景角色為 CC3 且選 Current，底層必須 graceful return False 而非直接 Crash (#96474)</span>
+        ...
+        
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">generate_character</span>(<span class="text-orange-300">self</span>, timeout_sec: <span class="text-purple-300">120</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 同步/非同步執行角色頭部與身體網格生成 (#97814)</span>
+        ...
+          </div>
+        </div>
+
+        <!-- Tab 2: Lifecycle API -->
+        <div id="api-lifecycle" class="api-panel p-6 hidden">
+          <div class="mb-4">
+            <h3 class="text-base font-bold text-earth-text dark:text-earth-darkText">SessionLifecycleAPI (生命週期與資源析構)</h3>
+            <p class="text-xs text-earth-muted dark:text-earth-darkMuted mt-1">守護 CI/CD 連續測試的生命線，保證記憶體緩衝區完全釋放無野指標。</p>
+          </div>
+          <div class="code-block rounded-xl p-4 font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-amber-400">class</span> <span class="text-emerald-400">SessionLifecycleAPI</span>:
+    <span class="text-stone-500">"""用於測試腳本安全重置與記憶體解構監控"""</span>
+    
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">new_project</span>(<span class="text-orange-300">self</span>, force: <span class="text-purple-400">bool</span> = <span class="text-purple-400">True</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 重設專案並強制執行全域 GC 與 HS3 臨時緩衝區析構 (#97732, #97792)</span>
+        ...
+        
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">get_allocated_mesh_memory</span>(<span class="text-orange-300">self</span>) -> <span class="text-purple-300">int</span>:
+        <span class="text-stone-500"># 斷言 new_project 後 HS3 頂點快取大小是否回歸 0</span>
+        ...
+          </div>
+        </div>
+
+        <!-- Tab 3: RefineMesh API -->
+        <div id="api-refine" class="api-panel p-6 hidden">
+          <div class="mb-4">
+            <h3 class="text-base font-bold text-earth-text dark:text-earth-darkText">RefineMeshAPI (五官微調與幾何決定論)</h3>
+            <p class="text-xs text-earth-muted dark:text-earth-darkMuted mt-1">包含關鍵的 `get_vertex_hash()` 接口，專門捕捉人眼無法發現的頂點微飄移。</p>
+          </div>
+          <div class="code-block rounded-xl p-4 font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-amber-400">class</span> <span class="text-emerald-400">RefineMeshAPI</span>:
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">open</span>(<span class="text-orange-300">self</span>, tab: <span class="text-emerald-300">str</span> = <span class="text-green-300">"Front"</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 開啟 Refine Mesh 模態視窗 (#96663)</span>
+        ...
+        
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">switch_tab</span>(<span class="text-orange-300">self</span>, tab: <span class="text-emerald-300">str</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 切換 Front/Side 分頁，檢驗狀態機回呼完整性 (#97746)</span>
+        ...
+        
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">apply</span>(<span class="text-orange-300">self</span>, apply_all: <span class="text-purple-400">bool</span> = <span class="text-purple-400">True</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 烘焙形變至角色網格</span>
+        ...
+        
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">get_vertex_hash</span>(<span class="text-orange-300">self</span>) -> <span class="text-emerald-300">str</span>:
+        <span class="text-stone-500"># ⭐ 核心價值：計算頭部所有頂點座標的 MD5 Hash</span>
+        <span class="text-stone-500"># 用於斷言 Apply -> Undo -> Apply 的決定論一致性 (#96459)</span>
+        ...
+          </div>
+        </div>
+
+        <!-- Tab 4: Brush API -->
+        <div id="api-brush" class="api-panel p-6 hidden">
+          <div class="mb-4">
+            <h3 class="text-base font-bold text-earth-text dark:text-earth-darkText">BrushTextureAPI (筆刷、遮罩與材質隔離)</h3>
+            <p class="text-xs text-earth-muted dark:text-earth-darkMuted mt-1">守護 3D Paint 筆刷緩衝區、快取重置與角色換裝時的 Mask 隔離。</p>
+          </div>
+          <div class="code-block rounded-xl p-4 font-mono text-xs overflow-x-auto leading-relaxed">
+<span class="text-amber-400">class</span> <span class="text-emerald-400">BrushTextureAPI</span>:
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">open_3d_brush</span>(<span class="text-orange-300">self</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 支援 Mesh Mode 產生的角色安全進入 3D Brush (#96928, #96786)</span>
+        ...
+        
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">get_current_mask_guid</span>(<span class="text-orange-300">self</span>) -> <span class="text-emerald-300">str</span>:
+        <span class="text-stone-500"># 驗證新角色生成時，遮罩 GUID 是否獨立於上一隻角色 (#97222)</span>
+        ...
+        
+    <span class="text-blue-400">def</span> <span class="text-yellow-300">clear_undo_paint_cache</span>(<span class="text-orange-300">self</span>) -> <span class="text-purple-400">bool</span>:
+        <span class="text-stone-500"># 避免全域撤銷棧將貼圖還原成前一隻角色的頭像 (#96880)</span>
+        ...
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-earth-border dark:border-earth-darkBorder bg-earth-paper/80 dark:bg-earth-darkSurface py-8 text-center text-xs text-earth-muted">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <span class="font-serif font-bold text-earth-terracotta">Reallusion CC / Headshot 3.0</span>
+        <span>· QA Architecture Review & Analysis</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="HS3_Non_AutoRegression_Analysis.html" class="hover:underline">非自動回歸調研報告</a>
+        <span>·</span>
+        <a href="index.html" class="hover:underline">專案導覽首頁</a>
+        <span>·</span>
+        <a href="https://github.com/boyu10/Reallusion" target="_blank" class="hover:underline">GitHub 儲存庫</a>
+      </div>
+      <div>
+        <span>風格：Earth-Tone Warm Palette (陶土·砂岩·泥金)</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    // Theme Toggle
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIconLight = document.getElementById('theme-icon-light');
+    const themeIconDark = document.getElementById('theme-icon-dark');
+
+    function updateThemeUI(isDark) {
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        themeIconLight.classList.remove('hidden');
+        themeIconDark.classList.add('hidden');
+      } else {
+        document.documentElement.classList.remove('dark');
+        themeIconLight.classList.add('hidden');
+        themeIconDark.classList.remove('hidden');
+      }
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let isDark = savedTheme ? savedTheme === 'dark' : systemPrefersDark;
+    updateThemeUI(isDark);
+
+    themeToggleBtn.addEventListener('click', () => {
+      isDark = !document.documentElement.classList.contains('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      updateThemeUI(isDark);
+    });
+
+    // Filter Logic
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const caseCards = document.querySelectorAll('.case-card');
+    const searchInput = document.getElementById('case-search');
+
+    let currentFilter = 'all';
+
+    function applyFilterAndSearch() {
+      const query = searchInput.value.trim().toLowerCase();
+
+      caseCards.forEach(card => {
+        const category = card.getAttribute('data-category');
+        const text = card.textContent.toLowerCase();
+
+        const matchesFilter = (currentFilter === 'all') || (category === currentFilter);
+        const matchesSearch = !query || text.includes(query);
+
+        if (matchesFilter && matchesSearch) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => {
+          b.classList.remove('active', 'bg-earth-terracotta', 'text-white');
+          b.classList.add('bg-earth-card', 'dark:bg-earth-darkCard', 'text-earth-muted');
+        });
+        btn.classList.add('active', 'bg-earth-terracotta', 'text-white');
+        btn.classList.remove('bg-earth-card', 'dark:bg-earth-darkCard', 'text-earth-muted');
+        currentFilter = btn.getAttribute('data-filter');
+        applyFilterAndSearch();
+      });
+    });
+
+    searchInput.addEventListener('input', applyFilterAndSearch);
+
+    // API Tabs
+    const apiTabs = document.querySelectorAll('.api-tab');
+    const apiPanels = document.querySelectorAll('.api-panel');
+
+    apiTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetId = tab.getAttribute('data-tab');
+        
+        apiTabs.forEach(t => {
+          t.classList.remove('active', 'border-earth-terracotta', 'text-earth-terracotta');
+          t.classList.add('border-transparent', 'text-earth-muted');
+        });
+        tab.classList.add('active', 'border-earth-terracotta', 'text-earth-terracotta');
+        tab.classList.remove('border-transparent', 'text-earth-muted');
+
+        apiPanels.forEach(panel => {
+          if (panel.id === targetId) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
